@@ -1,18 +1,12 @@
 import { Layout } from "@/components/layout/Layout";
-import { ProgressBar } from "@/components/ui/progress-bar";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useAllMembersWithContributions, useGroupStats, getMemberStatus } from "@/hooks/useContributions";
 import { 
-  members, 
-  getTotalCollected, 
-  TOTAL_TARGET,
-  getMemberStatus,
-  getAllPayments,
+  TARGET_AMOUNT,
   formatCurrency,
-  getCompletedCount,
-  getNotStartedCount,
   getDaysUntilDeadline,
-} from "@/lib/data";
+} from "@/lib/constants";
 import { 
   Shield, 
   TrendingUp, 
@@ -23,19 +17,39 @@ import {
 } from "lucide-react";
 
 export default function Treasurer() {
-  const totalCollected = getTotalCollected();
-  const progressPercentage = Math.round((totalCollected / TOTAL_TARGET) * 100);
-  const recentPayments = getAllPayments().slice(0, 5);
-  const completedCount = getCompletedCount();
-  const notStartedCount = getNotStartedCount();
+  const { data: members = [], isLoading } = useAllMembersWithContributions();
+  const { totalCollected, totalTarget, progressPercentage, completedCount } = useGroupStats();
   const daysLeft = getDaysUntilDeadline();
 
   // Members who need attention
-  const membersNotStarted = members.filter(m => m.amountPaid === 0);
+  const membersNotStarted = members.filter(m => m.totalPaid === 0);
   const membersCloseToDeadline = members.filter(m => {
-    const remaining = m.targetAmount - m.amountPaid;
-    return remaining > 0 && remaining >= 300; // More than half remaining
+    const remaining = TARGET_AMOUNT - m.totalPaid;
+    return remaining > 0 && remaining >= 300;
   });
+
+  // Get all payments sorted by date
+  const allPayments = members
+    .flatMap(m => m.contributions.map(c => ({ ...c, memberName: m.profile.name })))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 10);
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container py-8 md:py-12">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-muted rounded w-1/3" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="card-elevated p-5 h-24" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -72,7 +86,7 @@ export default function Treasurer() {
               <Clock className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground uppercase tracking-wide">Expected</span>
             </div>
-            <MoneyDisplay amount={TOTAL_TARGET} size="lg" muted />
+            <MoneyDisplay amount={totalTarget} size="lg" muted />
           </div>
 
           <div className="card-elevated p-5 animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -93,18 +107,18 @@ export default function Treasurer() {
         </section>
 
         {/* Admin Notices */}
-        {(notStartedCount > 0 || membersCloseToDeadline.length > 0) && (
+        {(membersNotStarted.length > 0 || (daysLeft <= 14 && membersCloseToDeadline.length > 0)) && (
           <section className="mb-8 space-y-3">
-            {notStartedCount > 0 && (
+            {membersNotStarted.length > 0 && (
               <div className="card-elevated p-4 border-warning/30 bg-warning-muted/30 animate-fade-in" style={{ animationDelay: '0.2s' }}>
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-foreground mb-1">
-                      {notStartedCount} member{notStartedCount > 1 ? 's' : ''} haven't started contributing
+                      {membersNotStarted.length} member{membersNotStarted.length > 1 ? 's' : ''} haven't started contributing
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {membersNotStarted.map(m => m.name).join(', ')}
+                      {membersNotStarted.map(m => m.profile.name).join(', ')}
                     </p>
                   </div>
                 </div>
@@ -135,45 +149,51 @@ export default function Treasurer() {
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
               All Members
             </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-2 text-muted-foreground font-medium">Name</th>
-                    <th className="text-right py-2 text-muted-foreground font-medium">Paid</th>
-                    <th className="text-right py-2 text-muted-foreground font-medium">Balance</th>
-                    <th className="text-right py-2 text-muted-foreground font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {members.map((member) => {
-                    const status = getMemberStatus(member);
-                    const balance = member.targetAmount - member.amountPaid;
-                    return (
-                      <tr key={member.id} className="border-b border-border last:border-0">
-                        <td className="py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-xs font-medium text-secondary-foreground">
-                              {member.name.charAt(0)}
+            {members.length === 0 ? (
+              <p className="text-muted-foreground text-sm py-4 text-center">
+                No members have joined yet.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 text-muted-foreground font-medium">Name</th>
+                      <th className="text-right py-2 text-muted-foreground font-medium">Paid</th>
+                      <th className="text-right py-2 text-muted-foreground font-medium">Balance</th>
+                      <th className="text-right py-2 text-muted-foreground font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {members.map((member) => {
+                      const status = getMemberStatus(member.totalPaid);
+                      const balance = Math.max(0, TARGET_AMOUNT - member.totalPaid);
+                      return (
+                        <tr key={member.profile.id} className="border-b border-border last:border-0">
+                          <td className="py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-xs font-medium text-secondary-foreground">
+                                {member.profile.name.charAt(0)}
+                              </div>
+                              <span className="font-medium text-foreground">{member.profile.name}</span>
                             </div>
-                            <span className="font-medium text-foreground">{member.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 text-right font-mono text-foreground">
-                          {formatCurrency(member.amountPaid)}
-                        </td>
-                        <td className="py-3 text-right font-mono text-muted-foreground">
-                          {formatCurrency(balance)}
-                        </td>
-                        <td className="py-3 text-right">
-                          <StatusBadge status={status} showIcon={false} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          </td>
+                          <td className="py-3 text-right font-mono text-foreground">
+                            {formatCurrency(member.totalPaid)}
+                          </td>
+                          <td className="py-3 text-right font-mono text-muted-foreground">
+                            {formatCurrency(balance)}
+                          </td>
+                          <td className="py-3 text-right">
+                            <StatusBadge status={status} showIcon={false} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
 
           {/* Recent Payments */}
@@ -181,31 +201,37 @@ export default function Treasurer() {
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
               Recent Payments
             </h2>
-            <div className="space-y-3">
-              {recentPayments.map((payment) => (
-                <div 
-                  key={payment.id}
-                  className="flex items-center justify-between py-3 border-b border-border last:border-0"
-                >
-                  <div>
-                    <p className="font-medium text-foreground">{payment.memberName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(payment.date).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </p>
+            {allPayments.length === 0 ? (
+              <p className="text-muted-foreground text-sm py-4 text-center">
+                No payments recorded yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {allPayments.map((payment) => (
+                  <div 
+                    key={payment.id}
+                    className="flex items-center justify-between py-3 border-b border-border last:border-0"
+                  >
+                    <div>
+                      <p className="font-medium text-foreground">{payment.memberName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(payment.created_at).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-mono font-semibold text-foreground">
+                        {formatCurrency(payment.amount)}
+                      </p>
+                      <span className="text-xs text-success">Completed</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-mono font-semibold text-foreground">
-                      {formatCurrency(payment.amount)}
-                    </p>
-                    <span className="text-xs text-success">Completed</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </div>

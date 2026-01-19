@@ -3,22 +3,19 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { useGroupStats } from "@/hooks/useContributions";
+import { useAuth } from "@/hooks/useAuth";
 import { 
-  getTotalCollected, 
-  TOTAL_TARGET, 
+  TARGET_AMOUNT, 
   DEADLINE, 
-  TOTAL_MEMBERS,
-  TARGET_AMOUNT,
   getDaysUntilDeadline,
-  getCompletedCount,
-} from "@/lib/data";
+} from "@/lib/constants";
 import { Target, Calendar, Users, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function Index() {
-  const totalCollected = getTotalCollected();
+  const { user } = useAuth();
+  const { totalCollected, totalTarget, memberCount, completedCount, progressPercentage } = useGroupStats();
   const daysLeft = getDaysUntilDeadline();
-  const completedCount = getCompletedCount();
-  const progressPercentage = Math.round((totalCollected / TOTAL_TARGET) * 100);
 
   return (
     <Layout>
@@ -42,7 +39,7 @@ export default function Index() {
             <span className="text-2xl font-bold text-primary">{progressPercentage}%</span>
           </div>
           
-          <ProgressBar value={totalCollected} max={TOTAL_TARGET} size="lg" className="mb-6" />
+          <ProgressBar value={totalCollected} max={totalTarget || 1} size="lg" className="mb-6" />
           
           <div className="flex items-center justify-between">
             <div>
@@ -51,7 +48,7 @@ export default function Index() {
             </div>
             <div className="text-right">
               <p className="text-sm text-muted-foreground mb-1">Target</p>
-              <MoneyDisplay amount={TOTAL_TARGET} size="lg" muted />
+              <MoneyDisplay amount={totalTarget || TARGET_AMOUNT * 10} size="lg" muted />
             </div>
           </div>
         </section>
@@ -90,23 +87,43 @@ export default function Index() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground mb-1">Members</p>
-              <p className="text-lg font-semibold text-foreground">{TOTAL_MEMBERS} members</p>
-              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-success" />
-                {completedCount} completed
+              <p className="text-lg font-semibold text-foreground">
+                {memberCount > 0 ? `${memberCount} members` : 'Join now'}
               </p>
+              {completedCount > 0 && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-success" />
+                  {completedCount} completed
+                </p>
+              )}
             </div>
           </div>
         </section>
 
         {/* CTA Section */}
         <section className="text-center animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <Link to="/dashboard">
-            <Button size="lg" className="gap-2 px-8">
-              View My Contribution
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
+          {user ? (
+            <Link to="/dashboard">
+              <Button size="lg" className="gap-2 px-8">
+                View My Contribution
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link to="/signup">
+                <Button size="lg" className="gap-2 px-8 w-full sm:w-auto">
+                  Join Now
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Link to="/login">
+                <Button size="lg" variant="outline" className="px-8 w-full sm:w-auto">
+                  Sign In
+                </Button>
+              </Link>
+            </div>
+          )}
         </section>
       </div>
     </Layout>
