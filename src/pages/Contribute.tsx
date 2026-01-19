@@ -4,22 +4,27 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyDisplay } from "@/components/ui/money-display";
-import { useMyTotal, useAddContribution } from "@/hooks/useContributions";
+import { useMyTotal } from "@/hooks/useContributions";
+import { useAuth } from "@/hooks/useAuth";
 import { TARGET_AMOUNT, formatCurrency } from "@/lib/constants";
-import { ArrowLeft, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle2, AlertCircle, Smartphone } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Contribute() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const totalPaid = useMyTotal();
   const remaining = Math.max(0, TARGET_AMOUNT - totalPaid);
-  const addContribution = useAddContribution();
   
   const [amount, setAmount] = useState<string>('');
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const numericAmount = parseInt(amount) || 0;
+  const isValidPhone = /^(07|01|\+254|254)\d{8,9}$/.test(phoneNumber.replace(/\s+/g, ''));
   const isValidAmount = numericAmount > 0 && numericAmount <= remaining;
 
   const handleQuickAmount = (value: number) => {
@@ -34,14 +39,36 @@ export default function Contribute() {
       setError('Please enter a valid amount');
       return;
     }
+    if (!isValidPhone) {
+      setError('Please enter a valid M-Pesa phone number (e.g., 0712345678)');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
 
     try {
-      await addContribution.mutateAsync(numericAmount);
+      const { data, error: fnError } = await supabase.functions.invoke('mpesa-stk-push', {
+        body: {
+          amount: numericAmount,
+          phone_number: phoneNumber,
+          user_id: user?.id,
+        },
+      });
+
+      if (fnError || !data?.success) {
+        throw new Error(data?.error || fnError?.message || 'Payment failed');
+      }
+
       setSuccess(true);
-      toast.success('Contribution recorded successfully!');
-      setTimeout(() => navigate('/dashboard'), 1500);
-    } catch (err: any) {
-      setError(err.message || 'Failed to record contribution');
+      toast.success('STK Push sent! Complete payment on your phone.');
+      setTimeout(() => navigate('/dashboard'), 3000);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to initiate payment';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -143,6 +170,29 @@ export default function Contribute() {
           </p>
         </section>
 
+        {/* Phone Number Input */}
+        <section className="mb-6 animate-fade-in" style={{ animationDelay: '0.12s' }}>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            M-Pesa Phone Number
+          </label>
+          <div className="relative">
+            <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            <Input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => {
+                setPhoneNumber(e.target.value);
+                setError(null);
+              }}
+              placeholder="0712345678"
+              className="pl-12 h-14 text-lg font-mono"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Enter the phone number registered with M-Pesa
+          </p>
+        </section>
+
         {/* Quick Amount Buttons */}
         {quickAmounts.length > 0 && (
           <section className="mb-8 animate-fade-in" style={{ animationDelay: '0.15s' }}>
@@ -177,24 +227,24 @@ export default function Contribute() {
         <section className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <Button
             onClick={handleSubmit}
-            disabled={!isValidAmount || addContribution.isPending}
+            disabled={!isValidAmount || !isValidPhone || isProcessing}
             className="w-full h-14 text-base gap-2"
             size="lg"
           >
-            {addContribution.isPending ? (
+            {isProcessing ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Processing...
+                Sending STK Push...
               </>
             ) : (
               <>
-                Confirm Contribution
-                <CheckCircle2 className="w-4 h-4" />
+                Pay with M-Pesa
+                <Smartphone className="w-4 h-4" />
               </>
             )}
           </Button>
           <p className="text-xs text-muted-foreground text-center mt-3">
-            Your contribution will be recorded immediately.
+            You'll receive an M-Pesa prompt on your phone to complete payment.
           </p>
         </section>
       </div>
