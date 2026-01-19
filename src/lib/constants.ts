@@ -1,6 +1,6 @@
 // Fund configuration constants
 export const TARGET_AMOUNT = 700;
-export const DEADLINE = new Date('2025-05-01');
+export const DEADLINE = new Date('2026-05-01');
 export const TOTAL_MEMBERS = 10;
 export const TOTAL_TARGET = TARGET_AMOUNT * TOTAL_MEMBERS;
 
