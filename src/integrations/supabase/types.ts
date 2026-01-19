@@ -17,6 +17,7 @@ export type Database = {
       contributions: {
         Row: {
           amount: number
+          api_ref: string | null
           created_at: string
           id: string
           status: string
@@ -24,6 +25,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          api_ref?: string | null
           created_at?: string
           id?: string
           status?: string
@@ -31,6 +33,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          api_ref?: string | null
           created_at?: string
           id?: string
           status?: string

@@ -57,13 +57,14 @@ Deno.serve(async (req) => {
     // Generate unique reference
     const apiRef = `contrib_${user_id.slice(0, 8)}_${Date.now()}`;
 
-    // Create a pending contribution record
+    // Create a pending contribution record with api_ref for webhook matching
     const { data: contribution, error: insertError } = await supabase
       .from('contributions')
       .insert({
         user_id,
         amount,
         status: 'pending',
+        api_ref: apiRef,
       })
       .select()
       .single();
@@ -73,7 +74,7 @@ Deno.serve(async (req) => {
       throw new Error('Failed to initiate payment');
     }
 
-    console.log(`Created pending contribution: ${contribution.id}`);
+    console.log(`Created pending contribution: ${contribution.id} with api_ref: ${apiRef}`);
 
     // Call IntaSend STK Push API
     const response = await fetch('https://payment.intasend.com/api/v1/payment/mpesa-stk-push/', {

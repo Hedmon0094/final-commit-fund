@@ -2,3 +2,6 @@ project_id = "atvrtfwbixjfvovvdguk"
 
 [functions.mpesa-stk-push]
 verify_jwt = false
+
+[functions.mpesa-webhook]
+verify_jwt = false
