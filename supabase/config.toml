@@ -1,1 +1,4 @@
 project_id = "atvrtfwbixjfvovvdguk"
+
+[functions.mpesa-stk-push]
+verify_jwt = false
