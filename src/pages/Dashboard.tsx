@@ -1,29 +1,42 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useAuth } from "@/hooks/useAuth";
+import { useMyContributions, useMyTotal, getMemberStatus } from "@/hooks/useContributions";
 import { 
-  members, 
-  getMemberStatus, 
+  TARGET_AMOUNT,
   getDaysUntilDeadline,
   isDeadlinePassed,
   formatCurrency,
-} from "@/lib/data";
+} from "@/lib/constants";
 import { Calendar, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
 
-// Simulating current logged-in member (in real app, this would come from auth)
-const CURRENT_MEMBER_ID = '3';
-
 export default function Dashboard() {
-  const member = members.find(m => m.id === CURRENT_MEMBER_ID)!;
-  const status = getMemberStatus(member);
-  const remaining = member.targetAmount - member.amountPaid;
+  const { profile } = useAuth();
+  const { data: contributions = [], isLoading } = useMyContributions();
+  const totalPaid = useMyTotal();
+  
+  const status = getMemberStatus(totalPaid);
+  const remaining = Math.max(0, TARGET_AMOUNT - totalPaid);
   const daysLeft = getDaysUntilDeadline();
   const deadlinePassed = isDeadlinePassed();
-  const isComplete = member.amountPaid >= member.targetAmount;
+  const isComplete = totalPaid >= TARGET_AMOUNT;
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container py-8 md:py-12">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-muted rounded w-1/3" />
+            <div className="card-elevated p-6 h-48" />
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -34,7 +47,7 @@ export default function Dashboard() {
             My Contributions
           </h1>
           <p className="text-muted-foreground">
-            Welcome back, {member.name.split(' ')[0]}
+            Welcome back, {profile?.name?.split(' ')[0] || 'Member'}
           </p>
         </section>
 
@@ -50,17 +63,17 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Amount Paid</p>
-              <MoneyDisplay amount={member.amountPaid} size="lg" />
+              <MoneyDisplay amount={totalPaid} size="lg" />
             </div>
             <div className="text-right">
               <p className="text-sm text-muted-foreground mb-1">Target</p>
-              <MoneyDisplay amount={member.targetAmount} size="lg" muted />
+              <MoneyDisplay amount={TARGET_AMOUNT} size="lg" muted />
             </div>
           </div>
 
           <ProgressBar 
-            value={member.amountPaid} 
-            max={member.targetAmount} 
+            value={totalPaid} 
+            max={TARGET_AMOUNT} 
             size="md" 
             showLabel 
           />
@@ -102,13 +115,13 @@ export default function Dashboard() {
             Payment History
           </h2>
           
-          {member.payments.length === 0 ? (
+          {contributions.length === 0 ? (
             <p className="text-muted-foreground text-sm py-4 text-center">
               No payments yet. Start contributing today!
             </p>
           ) : (
             <div className="space-y-3">
-              {member.payments.map((payment) => (
+              {contributions.map((payment) => (
                 <div 
                   key={payment.id}
                   className="flex items-center justify-between py-3 border-b border-border last:border-0"
@@ -118,7 +131,7 @@ export default function Dashboard() {
                       {formatCurrency(payment.amount)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(payment.date).toLocaleDateString('en-GB', {
+                      {new Date(payment.created_at).toLocaleDateString('en-GB', {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',

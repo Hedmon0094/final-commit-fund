@@ -4,20 +4,20 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyDisplay } from "@/components/ui/money-display";
-import { members, formatCurrency } from "@/lib/data";
-import { ArrowLeft, Loader2, ExternalLink, AlertCircle } from "lucide-react";
-
-// Simulating current logged-in member
-const CURRENT_MEMBER_ID = '3';
+import { useMyTotal, useAddContribution } from "@/hooks/useContributions";
+import { TARGET_AMOUNT, formatCurrency } from "@/lib/constants";
+import { ArrowLeft, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Contribute() {
   const navigate = useNavigate();
-  const member = members.find(m => m.id === CURRENT_MEMBER_ID)!;
-  const remaining = member.targetAmount - member.amountPaid;
+  const totalPaid = useMyTotal();
+  const remaining = Math.max(0, TARGET_AMOUNT - totalPaid);
+  const addContribution = useAddContribution();
   
   const [amount, setAmount] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const numericAmount = parseInt(amount) || 0;
   const isValidAmount = numericAmount > 0 && numericAmount <= remaining;
@@ -35,21 +35,56 @@ export default function Contribute() {
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // In real app, this would redirect to payment gateway
-    // For now, show success and go back
-    setIsLoading(false);
-    navigate('/dashboard');
+    try {
+      await addContribution.mutateAsync(numericAmount);
+      setSuccess(true);
+      toast.success('Contribution recorded successfully!');
+      setTimeout(() => navigate('/dashboard'), 1500);
+    } catch (err: any) {
+      setError(err.message || 'Failed to record contribution');
+    }
   };
 
   const quickAmounts = [100, 200, 350, remaining].filter((v, i, arr) => 
-    v <= remaining && arr.indexOf(v) === i
+    v <= remaining && v > 0 && arr.indexOf(v) === i
   );
+
+  if (success) {
+    return (
+      <Layout>
+        <div className="container py-8 md:py-12 max-w-lg mx-auto">
+          <div className="text-center animate-fade-in">
+            <div className="w-16 h-16 rounded-full bg-success-muted flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 text-success" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Thank you!</h1>
+            <p className="text-muted-foreground">Your contribution of {formatCurrency(numericAmount)} has been recorded.</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (remaining === 0) {
+    return (
+      <Layout>
+        <div className="container py-8 md:py-12 max-w-lg mx-auto">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+          <div className="card-elevated p-6 text-center">
+            <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-4" />
+            <h1 className="text-xl font-bold text-foreground mb-2">All Done!</h1>
+            <p className="text-muted-foreground">You've already completed your contribution target.</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -109,24 +144,26 @@ export default function Contribute() {
         </section>
 
         {/* Quick Amount Buttons */}
-        <section className="mb-8 animate-fade-in" style={{ animationDelay: '0.15s' }}>
-          <p className="text-xs text-muted-foreground mb-3">Quick select</p>
-          <div className="flex flex-wrap gap-2">
-            {quickAmounts.map((quickAmount) => (
-              <button
-                key={quickAmount}
-                onClick={() => handleQuickAmount(quickAmount)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  numericAmount === quickAmount
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-accent'
-                }`}
-              >
-                {quickAmount === remaining ? 'Pay All' : formatCurrency(quickAmount)}
-              </button>
-            ))}
-          </div>
-        </section>
+        {quickAmounts.length > 0 && (
+          <section className="mb-8 animate-fade-in" style={{ animationDelay: '0.15s' }}>
+            <p className="text-xs text-muted-foreground mb-3">Quick select</p>
+            <div className="flex flex-wrap gap-2">
+              {quickAmounts.map((quickAmount) => (
+                <button
+                  key={quickAmount}
+                  onClick={() => handleQuickAmount(quickAmount)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    numericAmount === quickAmount
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-accent'
+                  }`}
+                >
+                  {quickAmount === remaining ? 'Pay All' : formatCurrency(quickAmount)}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Error Message */}
         {error && (
@@ -140,24 +177,24 @@ export default function Contribute() {
         <section className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <Button
             onClick={handleSubmit}
-            disabled={!isValidAmount || isLoading}
+            disabled={!isValidAmount || addContribution.isPending}
             className="w-full h-14 text-base gap-2"
             size="lg"
           >
-            {isLoading ? (
+            {addContribution.isPending ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Generating Payment Link...
+                Processing...
               </>
             ) : (
               <>
-                Generate Payment Link
-                <ExternalLink className="w-4 h-4" />
+                Confirm Contribution
+                <CheckCircle2 className="w-4 h-4" />
               </>
             )}
           </Button>
           <p className="text-xs text-muted-foreground text-center mt-3">
-            You will be redirected to a secure payment page.
+            Your contribution will be recorded immediately.
           </p>
         </section>
       </div>
