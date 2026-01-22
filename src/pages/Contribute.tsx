@@ -52,7 +52,7 @@ export default function Contribute() {
         body: {
           amount: numericAmount,
           phone_number: phoneNumber,
-          user_id: user?.id,
+          // user_id is extracted from JWT on server side for security
         },
       });
 
