@@ -8,7 +8,6 @@ const corsHeaders = {
 interface PaymentRequest {
   amount: number;
   phone_number: string;
-  user_id: string;
   email?: string;
 }
 
@@ -19,17 +18,69 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error('Missing or invalid Authorization header');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Unauthorized' 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Create client with user's auth context to validate JWT
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Validate the JWT and get user claims
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims) {
+      console.error('JWT validation failed:', claimsError);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Unauthorized' 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Get user ID from validated JWT claims
+    const user_id = claimsData.claims.sub;
+    const userEmail = claimsData.claims.email;
+    
+    if (!user_id) {
+      console.error('No user ID in JWT claims');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Unauthorized' 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`Authenticated user: ${user_id}`);
+
     const PAYSTACK_SECRET_KEY = Deno.env.get('PAYSTACK_SECRET_KEY');
     if (!PAYSTACK_SECRET_KEY) {
       console.error('PAYSTACK_SECRET_KEY not configured');
       throw new Error('Payment service not configured');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Create service role client for database operations
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { amount, phone_number, user_id, email }: PaymentRequest = await req.json();
+    const { amount, phone_number, email }: PaymentRequest = await req.json();
 
     console.log(`Initiating Paystack charge: amount=${amount}, phone=${phone_number}, user=${user_id}`);
 
@@ -39,9 +90,6 @@ Deno.serve(async (req) => {
     }
     if (!phone_number) {
       throw new Error('Phone number is required');
-    }
-    if (!user_id) {
-      throw new Error('User ID is required');
     }
 
     // Format phone number (ensure +254 format for Kenya)
@@ -86,7 +134,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         amount: amountInCents,
-        email: email || `${user_id.slice(0, 8)}@finalcommit.fund`,
+        email: email || userEmail || `${user_id.slice(0, 8)}@finalcommit.fund`,
         currency: 'KES',
         mobile_money: {
           phone: formattedPhone,

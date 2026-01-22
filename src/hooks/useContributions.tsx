@@ -11,16 +11,17 @@ interface Contribution {
   created_at: string;
 }
 
-interface Profile {
+// Public profile interface (excludes sensitive data)
+interface PublicProfile {
   id: string;
   user_id: string;
   name: string;
-  email: string;
   is_treasurer: boolean;
+  created_at: string;
 }
 
 interface MemberWithContributions {
-  profile: Profile;
+  profile: PublicProfile;
   totalPaid: number;
   contributions: Contribution[];
 }
@@ -53,13 +54,17 @@ export function useMyTotal() {
 }
 
 export function useAllMembersWithContributions() {
+  const { profile } = useAuth();
+  const isTreasurer = profile?.is_treasurer ?? false;
+
   return useQuery({
-    queryKey: ['all-members-contributions'],
+    queryKey: ['all-members-contributions', isTreasurer],
     queryFn: async () => {
-      // Get all profiles
+      // Use public_profiles view to get only non-sensitive profile data
+      // Cast to unknown first since view isn't in generated types yet
       const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
+        .from('public_profiles' as 'profiles')
+        .select('id, user_id, name, is_treasurer, created_at')
         .order('name');
 
       if (profileError) throw profileError;
@@ -73,7 +78,7 @@ export function useAllMembersWithContributions() {
       if (contribError) throw contribError;
 
       // Map profiles with their contributions
-      const members: MemberWithContributions[] = (profiles as Profile[]).map(profile => {
+      const members: MemberWithContributions[] = (profiles as PublicProfile[]).map(profile => {
         const memberContributions = (contributions as Contribution[]).filter(
           c => c.user_id === profile.user_id
         );
