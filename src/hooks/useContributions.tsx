@@ -93,6 +93,8 @@ export function useAllMembersWithContributions() {
 
       return members;
     },
+    // Prevents query execution for non-treasurers (RLS will still enforce server-side)
+    enabled: isTreasurer,
   });
 }
 
