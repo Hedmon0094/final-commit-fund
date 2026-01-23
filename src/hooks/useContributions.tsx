@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { TARGET_AMOUNT, TOTAL_TARGET } from '@/lib/constants';
+import { TARGET_AMOUNT, TOTAL_TARGET, TOTAL_MEMBERS } from '@/lib/constants';
 
 interface Contribution {
   id: string;
@@ -98,8 +98,80 @@ export function useAllMembersWithContributions() {
   });
 }
 
+// Public stats hook - queries aggregate data without requiring treasurer role
+export function usePublicStats() {
+  return useQuery({
+    queryKey: ['public-stats'],
+    queryFn: async () => {
+      // Get count of members who have joined (profiles created)
+      const { count: memberCount, error: memberError } = await supabase
+        .from('public_profiles' as 'profiles')
+        .select('*', { count: 'exact', head: true });
+
+      if (memberError) throw memberError;
+
+      // Get total collected from all completed contributions
+      const { data: contributions, error: contribError } = await supabase
+        .from('contributions')
+        .select('amount, user_id')
+        .eq('status', 'completed');
+
+      if (contribError) throw contribError;
+
+      const totalCollected = contributions?.reduce((sum, c) => sum + c.amount, 0) || 0;
+      
+      // Calculate unique users who have completed their target
+      const userTotals = new Map<string, number>();
+      contributions?.forEach(c => {
+        const current = userTotals.get(c.user_id) || 0;
+        userTotals.set(c.user_id, current + c.amount);
+      });
+      
+      let completedCount = 0;
+      let inProgressCount = 0;
+      userTotals.forEach(total => {
+        if (total >= TARGET_AMOUNT) completedCount++;
+        else if (total > 0) inProgressCount++;
+      });
+
+      const actualMemberCount = memberCount || 0;
+      const notStartedCount = actualMemberCount - completedCount - inProgressCount;
+      const totalTarget = actualMemberCount * TARGET_AMOUNT;
+
+      return {
+        totalCollected,
+        totalTarget,
+        memberCount: actualMemberCount,
+        completedCount,
+        inProgressCount,
+        notStartedCount: Math.max(0, notStartedCount),
+        progressPercentage: totalTarget > 0 ? Math.round((totalCollected / totalTarget) * 100) : 0,
+      };
+    },
+    staleTime: 30000, // Cache for 30 seconds
+  });
+}
+
+// Treasurer-only detailed stats (uses member data)
 export function useGroupStats() {
+  const { profile } = useAuth();
+  const isTreasurer = profile?.is_treasurer ?? false;
   const { data: members = [] } = useAllMembersWithContributions();
+
+  // For non-treasurers, use public stats
+  const { data: publicStats } = usePublicStats();
+
+  if (!isTreasurer) {
+    return publicStats || {
+      totalCollected: 0,
+      totalTarget: TOTAL_TARGET,
+      memberCount: 0,
+      completedCount: 0,
+      inProgressCount: 0,
+      notStartedCount: 0,
+      progressPercentage: 0,
+    };
+  }
 
   const totalCollected = members.reduce((sum, m) => sum + m.totalPaid, 0);
   const memberCount = members.length;
