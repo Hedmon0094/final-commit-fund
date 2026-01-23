@@ -22,13 +22,19 @@ interface PaystackWebhookPayload {
   };
 }
 
+// Helper to mask reference for logging
+function maskReference(ref: string): string {
+  if (!ref || ref.length < 8) return '***';
+  return `${ref.slice(0, 8)}...`;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('Received Paystack webhook');
+  console.log('Received webhook request');
 
   try {
     const PAYSTACK_SECRET_KEY = Deno.env.get('PAYSTACK_SECRET_KEY');
@@ -62,14 +68,15 @@ Deno.serve(async (req) => {
 
     const payload: PaystackWebhookPayload = JSON.parse(rawBody);
     
-    console.log('Webhook payload:', JSON.stringify(payload));
+    // Log only non-sensitive event info
+    console.log('Processing webhook event:', { event: payload.event, status: payload.data?.status });
 
     const { event, data } = payload;
     const { reference, status, gateway_response } = data;
 
     // Only process charge events
     if (!event.startsWith('charge.')) {
-      console.log(`Ignoring event: ${event}`);
+      console.log(`Ignoring non-charge event`);
       return new Response(JSON.stringify({ success: true, message: 'Event ignored' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -99,7 +106,7 @@ Deno.serve(async (req) => {
         break;
     }
 
-    console.log(`Updating contribution with reference=${reference} to status=${newStatus}`);
+    console.log(`Updating contribution status to: ${newStatus}`);
 
     // Find and update the contribution by api_ref (which stores our reference)
     const { data: contribution, error: findError } = await supabase
@@ -109,7 +116,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (findError || !contribution) {
-      console.error('Contribution not found for reference:', reference, findError);
+      console.error('Contribution not found for reference:', maskReference(reference));
       return new Response(JSON.stringify({ error: 'Contribution not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -130,26 +137,25 @@ Deno.serve(async (req) => {
       .eq('id', contribution.id);
 
     if (updateError) {
-      console.error('Failed to update contribution:', updateError);
+      console.error('Failed to update contribution status');
       throw new Error('Failed to update contribution status');
     }
 
-    console.log(`Successfully updated contribution ${contribution.id} to ${newStatus}`);
+    console.log(`Successfully updated contribution to ${newStatus}`);
 
-    if (status === 'failed' && gateway_response) {
-      console.log(`Payment failed: ${gateway_response}`);
+    if (status === 'failed') {
+      console.log('Payment failed - gateway returned failure status');
     }
 
     return new Response(JSON.stringify({
       success: true,
       message: `Contribution status updated to ${newStatus}`,
-      contribution_id: contribution.id,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error: unknown) {
-    console.error('Webhook error:', error);
+    console.error('Webhook processing error');
     const errorMessage = error instanceof Error ? error.message : 'Webhook processing failed';
     return new Response(JSON.stringify({
       success: false,
