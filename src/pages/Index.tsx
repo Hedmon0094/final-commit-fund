@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { MoneyDisplay } from "@/components/ui/money-display";
-import { usePublicStats } from "@/hooks/useContributions";
+import { usePublicStats, useContributionsRealtime } from "@/hooks/useContributions";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   TARGET_AMOUNT, 
@@ -15,6 +15,10 @@ import { Target, Calendar, Users, ArrowRight, CheckCircle2, Loader2 } from "luci
 
 export default function Index() {
   const { user } = useAuth();
+  
+  // Set up real-time subscription for live updates
+  useContributionsRealtime();
+  
   const { data: stats, isLoading } = usePublicStats();
   const daysLeft = getDaysUntilDeadline();
   
