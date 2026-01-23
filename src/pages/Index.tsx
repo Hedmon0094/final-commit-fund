@@ -3,15 +3,14 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { CountdownTimer } from "@/components/CountdownTimer";
 import { usePublicStats, useContributionsRealtime } from "@/hooks/useContributions";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   TARGET_AMOUNT, 
-  DEADLINE, 
-  getDaysUntilDeadline,
   TOTAL_MEMBERS,
 } from "@/lib/constants";
-import { Target, Calendar, Users, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { Target, Users, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function Index() {
   const { user } = useAuth();
@@ -20,7 +19,6 @@ export default function Index() {
   useContributionsRealtime();
   
   const { data: stats, isLoading } = usePublicStats();
-  const daysLeft = getDaysUntilDeadline();
   
   const totalCollected = stats?.totalCollected ?? 0;
   const totalTarget = stats?.totalTarget || (TARGET_AMOUNT * TOTAL_MEMBERS);
@@ -85,19 +83,8 @@ export default function Index() {
             </div>
           </div>
 
-          <div className="card-elevated p-5 flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.15s' }}>
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Calendar className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Deadline</p>
-              <p className="text-lg font-semibold text-foreground">
-                {DEADLINE.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {daysLeft > 0 ? `${daysLeft} days left` : 'Deadline passed'}
-              </p>
-            </div>
+          <div className="card-elevated p-5 flex items-center justify-center animate-fade-in" style={{ animationDelay: '0.15s' }}>
+            <CountdownTimer />
           </div>
 
           <div className="card-elevated p-5 flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
