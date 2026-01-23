@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -99,7 +100,41 @@ export function useAllMembersWithContributions() {
 }
 
 // Public stats hook - queries aggregate data without requiring treasurer role
+// Includes real-time subscription for live updates
 export function usePublicStats() {
+  const queryClient = useQueryClient();
+
+  // Set up real-time subscription for contributions changes
+  useEffect(() => {
+    console.log('Setting up real-time subscription for contributions');
+    
+    const channel = supabase
+      .channel('public-contributions-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'contributions',
+        },
+        (payload) => {
+          console.log('Real-time contribution update:', payload.eventType);
+          // Invalidate the query to refetch fresh data
+          queryClient.invalidateQueries({ queryKey: ['public-stats'] });
+          queryClient.invalidateQueries({ queryKey: ['my-contributions'] });
+          queryClient.invalidateQueries({ queryKey: ['all-members-contributions'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Real-time subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['public-stats'],
     queryFn: async () => {
@@ -148,7 +183,7 @@ export function usePublicStats() {
         progressPercentage: totalTarget > 0 ? Math.round((totalCollected / totalTarget) * 100) : 0,
       };
     },
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 10000, // Cache for 10 seconds (reduced for real-time feel)
   });
 }
 
