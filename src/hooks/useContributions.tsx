@@ -99,12 +99,10 @@ export function useAllMembersWithContributions() {
   });
 }
 
-// Public stats hook - queries aggregate data without requiring treasurer role
-// Includes real-time subscription for live updates
-export function usePublicStats() {
+// Hook for real-time contribution updates subscription
+export function useContributionsRealtime() {
   const queryClient = useQueryClient();
 
-  // Set up real-time subscription for contributions changes
   useEffect(() => {
     console.log('Setting up real-time subscription for contributions');
     
@@ -119,7 +117,7 @@ export function usePublicStats() {
         },
         (payload) => {
           console.log('Real-time contribution update:', payload.eventType);
-          // Invalidate the query to refetch fresh data
+          // Invalidate queries to refetch fresh data
           queryClient.invalidateQueries({ queryKey: ['public-stats'] });
           queryClient.invalidateQueries({ queryKey: ['my-contributions'] });
           queryClient.invalidateQueries({ queryKey: ['all-members-contributions'] });
@@ -134,7 +132,10 @@ export function usePublicStats() {
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
+}
 
+// Public stats hook - queries aggregate data without requiring treasurer role
+export function usePublicStats() {
   return useQuery({
     queryKey: ['public-stats'],
     queryFn: async () => {
@@ -183,7 +184,7 @@ export function usePublicStats() {
         progressPercentage: totalTarget > 0 ? Math.round((totalCollected / totalTarget) * 100) : 0,
       };
     },
-    staleTime: 10000, // Cache for 10 seconds (reduced for real-time feel)
+    staleTime: 10000, // Cache for 10 seconds
   });
 }
 
