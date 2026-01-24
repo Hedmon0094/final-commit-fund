@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { toast } from '@/hooks/use-toast';
 import { TARGET_AMOUNT, TOTAL_TARGET, TOTAL_MEMBERS } from '@/lib/constants';
 
 interface Contribution {
@@ -102,9 +103,16 @@ export function useAllMembersWithContributions() {
 // Hook for real-time contribution updates subscription
 export function useContributionsRealtime() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     console.log('Setting up real-time subscription for contributions');
+    
+    // Skip toast on initial mount
+    const timer = setTimeout(() => {
+      isInitialMount.current = false;
+    }, 2000);
     
     const channel = supabase
       .channel('public-contributions-updates')
@@ -117,6 +125,21 @@ export function useContributionsRealtime() {
         },
         (payload) => {
           console.log('Real-time contribution update:', payload.eventType);
+          
+          // Show toast for new contributions (not from current user, after initial mount)
+          if (
+            payload.eventType === 'INSERT' && 
+            !isInitialMount.current &&
+            payload.new &&
+            (payload.new as { user_id?: string; amount?: number }).user_id !== user?.id
+          ) {
+            const newContribution = payload.new as { amount: number };
+            toast({
+              title: "New Contribution! 🎉",
+              description: `Someone just contributed KES ${newContribution.amount.toLocaleString()}`,
+            });
+          }
+          
           // Invalidate queries to refetch fresh data
           queryClient.invalidateQueries({ queryKey: ['public-stats'] });
           queryClient.invalidateQueries({ queryKey: ['my-contributions'] });
@@ -129,9 +152,10 @@ export function useContributionsRealtime() {
 
     return () => {
       console.log('Cleaning up real-time subscription');
+      clearTimeout(timer);
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, user?.id]);
 }
 
 // Public stats hook - queries aggregate data without requiring treasurer role
