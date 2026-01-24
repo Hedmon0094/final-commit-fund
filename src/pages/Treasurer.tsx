@@ -1,11 +1,18 @@
+import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useAllMembersWithContributions, useGroupStats, getMemberStatus } from "@/hooks/useContributions";
+import { ProgressBar } from "@/components/ui/progress-bar";
+import { Button } from "@/components/ui/button";
+import { useAllMembersWithContributions, useGroupStats, getMemberStatus, useContributionsRealtime } from "@/hooks/useContributions";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   TARGET_AMOUNT,
+  TOTAL_MEMBERS,
+  TOTAL_TARGET,
   formatCurrency,
   getDaysUntilDeadline,
+  DEADLINE,
 } from "@/lib/constants";
 import { 
   Shield, 
@@ -14,25 +21,84 @@ import {
   Clock,
   CheckCircle2,
   User,
+  Users,
+  Target,
+  Calendar,
+  Copy,
+  ExternalLink,
+  UserPlus,
+  Percent,
+  ArrowUpRight,
+  Crown,
+  Mail,
+  RefreshCw,
+  BarChart3,
+  Wallet,
 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 export default function Treasurer() {
-  const { data: members = [], isLoading } = useAllMembersWithContributions();
-  const { totalCollected, totalTarget, progressPercentage, completedCount } = useGroupStats();
+  const { profile } = useAuth();
+  const { data: members = [], isLoading, refetch } = useAllMembersWithContributions();
+  const treasurerStats = useGroupStats();
   const daysLeft = getDaysUntilDeadline();
+  
+  // Real-time updates
+  useContributionsRealtime();
+  
+  // Use fixed total target
+  const totalCollected = treasurerStats?.totalCollected ?? 0;
+  const totalTarget = TOTAL_TARGET; // Fixed at 7,000
+  const memberCount = members.length;
+  const completedCount = treasurerStats?.completedCount ?? 0;
+  const inProgressCount = treasurerStats?.inProgressCount ?? 0;
+  const notStartedCount = members.filter(m => m.totalPaid === 0).length;
+  const notJoinedCount = TOTAL_MEMBERS - memberCount;
+  const progressPercentage = totalTarget > 0 ? Math.round((totalCollected / totalTarget) * 100) : 0;
+
+  // Calculate additional stats
+  const avgContribution = memberCount > 0 ? Math.round(totalCollected / memberCount) : 0;
+  const remainingAmount = Math.max(0, totalTarget - totalCollected);
+  const collectionRate = memberCount > 0 ? Math.round((completedCount / memberCount) * 100) : 0;
 
   // Members who need attention
   const membersNotStarted = members.filter(m => m.totalPaid === 0);
-  const membersCloseToDeadline = members.filter(m => {
-    const remaining = TARGET_AMOUNT - m.totalPaid;
-    return remaining > 0 && remaining >= 300;
-  });
+  const membersInProgress = members.filter(m => m.totalPaid > 0 && m.totalPaid < TARGET_AMOUNT);
+  const membersCompleted = members.filter(m => m.totalPaid >= TARGET_AMOUNT);
 
   // Get all payments sorted by date
   const allPayments = members
     .flatMap(m => m.contributions.map(c => ({ ...c, memberName: m.profile.name })))
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 10);
+
+  // Copy functions
+  const copySignupLink = () => {
+    navigator.clipboard.writeText(window.location.origin + '/signup');
+    toast({
+      title: "Link Copied!",
+      description: "Signup link copied to clipboard",
+    });
+  };
+
+  const copyProgressSummary = () => {
+    const summary = `FinalCommit Fund Progress Update 📊
+━━━━━━━━━━━━━━━━━━━━
+💰 Collected: KES ${totalCollected.toLocaleString()} / ${totalTarget.toLocaleString()} (${progressPercentage}%)
+👥 Members: ${memberCount} / ${TOTAL_MEMBERS} joined
+✅ Completed: ${completedCount} members
+⏳ In Progress: ${inProgressCount} members
+📅 Days Left: ${daysLeft}
+━━━━━━━━━━━━━━━━━━━━
+Join now: ${window.location.origin}/signup`;
+    
+    navigator.clipboard.writeText(summary);
+    toast({
+      title: "Summary Copied!",
+      description: "Progress summary copied to clipboard",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -56,66 +122,168 @@ export default function Treasurer() {
       <div className="container py-8 md:py-12">
         {/* Header */}
         <section className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-primary" />
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Shield className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                    Treasurer Dashboard
+                  </h1>
+                  <Crown className="w-5 h-5 text-warning" />
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  Welcome back, {profile?.name || 'Treasurer'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => refetch()} title="Refresh data">
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+              <Link to="/group">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Group View
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Main Progress Card */}
+        <section className="card-elevated p-6 mb-6 animate-fade-in">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary" />
+              <h2 className="font-semibold text-foreground">Fund Collection Status</h2>
+            </div>
+            <span className="text-2xl font-bold text-primary">{progressPercentage}%</span>
+          </div>
+          
+          <ProgressBar value={totalCollected} max={totalTarget} size="lg" className="mb-4" />
+          
+          <div className="grid grid-cols-4 gap-4 text-center">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Collected</p>
+              <p className="text-lg font-bold text-success">KES {totalCollected.toLocaleString()}</p>
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                Treasurer Dashboard
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Full visibility & fund management
+              <p className="text-xs text-muted-foreground mb-1">Remaining</p>
+              <p className="text-lg font-bold text-warning">KES {remainingAmount.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Group Target</p>
+              <p className="text-lg font-bold text-foreground">KES {totalTarget.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Days Left</p>
+              <p className={`text-lg font-bold ${daysLeft <= 14 ? 'text-destructive' : 'text-foreground'}`}>
+                {daysLeft}
               </p>
             </div>
           </div>
         </section>
 
         {/* Overview Stats */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="card-elevated p-5 animate-fade-in">
+        <section className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+          <div className="card-elevated p-4 animate-fade-in">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">Collected</span>
+              <Target className="w-4 h-4 text-primary" />
+              <span className="text-xs text-muted-foreground">Per Member</span>
             </div>
-            <MoneyDisplay amount={totalCollected} size="lg" />
+            <p className="text-xl font-bold text-foreground">KES {TARGET_AMOUNT}</p>
           </div>
 
-          <div className="card-elevated p-5 animate-fade-in" style={{ animationDelay: '0.05s' }}>
+          <div className="card-elevated p-4 animate-fade-in" style={{ animationDelay: '0.05s' }}>
             <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">Expected</span>
+              <Users className="w-4 h-4 text-primary" />
+              <span className="text-xs text-muted-foreground">Joined</span>
             </div>
-            <MoneyDisplay amount={totalTarget} size="lg" muted />
+            <p className="text-xl font-bold text-foreground">{memberCount} / {TOTAL_MEMBERS}</p>
           </div>
 
-          <div className="card-elevated p-5 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <div className="card-elevated p-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle2 className="w-4 h-4 text-success" />
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">Completion</span>
+              <span className="text-xs text-muted-foreground">Completed</span>
             </div>
-            <p className="text-2xl font-bold text-foreground">{progressPercentage}%</p>
+            <p className="text-xl font-bold text-success">{completedCount}</p>
           </div>
 
-          <div className="card-elevated p-5 animate-fade-in" style={{ animationDelay: '0.15s' }}>
+          <div className="card-elevated p-4 animate-fade-in" style={{ animationDelay: '0.15s' }}>
             <div className="flex items-center gap-2 mb-2">
-              <User className="w-4 h-4 text-success" />
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">Completed</span>
+              <Clock className="w-4 h-4 text-warning" />
+              <span className="text-xs text-muted-foreground">In Progress</span>
             </div>
-            <p className="text-2xl font-bold text-foreground">{completedCount}/{members.length}</p>
+            <p className="text-xl font-bold text-warning">{inProgressCount}</p>
+          </div>
+
+          <div className="card-elevated p-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Percent className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Avg. Paid</span>
+            </div>
+            <p className="text-xl font-bold text-foreground">KES {avgContribution}</p>
+          </div>
+        </section>
+
+        {/* Quick Actions */}
+        <section className="card-elevated p-4 mb-6 animate-fade-in" style={{ animationDelay: '0.25s' }}>
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
+            Quick Actions
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={copySignupLink}>
+              <Copy className="w-4 h-4" />
+              Copy Signup Link
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={copyProgressSummary}>
+              <Mail className="w-4 h-4" />
+              Copy Progress Summary
+            </Button>
+            <Link to="/contribute">
+              <Button variant="outline" size="sm" className="gap-2">
+                <ArrowUpRight className="w-4 h-4" />
+                Make Contribution
+              </Button>
+            </Link>
           </div>
         </section>
 
         {/* Admin Notices */}
-        {(membersNotStarted.length > 0 || (daysLeft <= 14 && membersCloseToDeadline.length > 0)) && (
-          <section className="mb-8 space-y-3">
+        {(notJoinedCount > 0 || membersNotStarted.length > 0 || (daysLeft <= 14 && membersInProgress.length > 0)) && (
+          <section className="mb-6 space-y-3">
+            {notJoinedCount > 0 && (
+              <div className="card-elevated p-4 border-l-4 border-l-secondary animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <UserPlus className="w-5 h-5 text-secondary-foreground flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-foreground mb-1">
+                        {notJoinedCount} member{notJoinedCount > 1 ? 's' : ''} haven't signed up yet
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Share the signup link with remaining members
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={copySignupLink}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {membersNotStarted.length > 0 && (
-              <div className="card-elevated p-4 border-warning/30 bg-warning-muted/30 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              <div className="card-elevated p-4 border-l-4 border-l-warning animate-fade-in" style={{ animationDelay: '0.35s' }}>
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-foreground mb-1">
-                      {membersNotStarted.length} member{membersNotStarted.length > 1 ? 's' : ''} haven't started contributing
+                      {membersNotStarted.length} member{membersNotStarted.length > 1 ? 's' : ''} haven't contributed
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {membersNotStarted.map(m => m.profile.name).join(', ')}
@@ -125,16 +293,16 @@ export default function Treasurer() {
               </div>
             )}
 
-            {daysLeft <= 14 && membersCloseToDeadline.length > 0 && (
-              <div className="card-elevated p-4 border-destructive/30 animate-fade-in" style={{ animationDelay: '0.25s' }}>
+            {daysLeft <= 14 && membersInProgress.length > 0 && (
+              <div className="card-elevated p-4 border-l-4 border-l-destructive animate-fade-in" style={{ animationDelay: '0.4s' }}>
                 <div className="flex items-start gap-3">
                   <Clock className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-foreground mb-1">
-                      {membersCloseToDeadline.length} member{membersCloseToDeadline.length > 1 ? 's' : ''} may not meet deadline
+                      {membersInProgress.length} member{membersInProgress.length > 1 ? 's' : ''} still in progress
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {daysLeft} days left with significant balance remaining
+                      Only {daysLeft} days left - deadline: {DEADLINE.toLocaleDateString('en-KE', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
                 </div>
@@ -145,10 +313,18 @@ export default function Treasurer() {
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* All Members Table */}
-          <section className="card-elevated p-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
-              All Members
-            </h2>
+          <section className="card-elevated p-6 animate-fade-in" style={{ animationDelay: '0.45s' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                All Members ({memberCount})
+              </h2>
+              <div className="flex items-center gap-1 text-xs">
+                <span className="px-2 py-0.5 rounded bg-success/10 text-success">{completedCount}</span>
+                <span className="px-2 py-0.5 rounded bg-warning/10 text-warning">{inProgressCount}</span>
+                <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground">{notStartedCount}</span>
+              </div>
+            </div>
+            
             {members.length === 0 ? (
               <p className="text-muted-foreground text-sm py-4 text-center">
                 No members have joined yet.
@@ -165,68 +341,118 @@ export default function Treasurer() {
                     </tr>
                   </thead>
                   <tbody>
-                    {members.map((member) => {
-                      const status = getMemberStatus(member.totalPaid);
-                      const balance = Math.max(0, TARGET_AMOUNT - member.totalPaid);
-                      return (
-                        <tr key={member.profile.id} className="border-b border-border last:border-0">
-                          <td className="py-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-xs font-medium text-secondary-foreground">
-                                {member.profile.name.charAt(0)}
+                    {[...members]
+                      .sort((a, b) => b.totalPaid - a.totalPaid) // Sort by amount paid (highest first)
+                      .map((member) => {
+                        const status = getMemberStatus(member.totalPaid);
+                        const balance = Math.max(0, TARGET_AMOUNT - member.totalPaid);
+                        const progressPercent = Math.min(100, Math.round((member.totalPaid / TARGET_AMOUNT) * 100));
+                        
+                        return (
+                          <tr key={member.profile.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                            <td className="py-3">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+                                  status === 'completed' 
+                                    ? 'bg-success/10 text-success' 
+                                    : status === 'in-progress'
+                                      ? 'bg-warning/10 text-warning'
+                                      : 'bg-secondary text-secondary-foreground'
+                                }`}>
+                                  {member.profile.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-foreground text-sm">{member.profile.name}</span>
+                                    {member.profile.is_treasurer && (
+                                      <Crown className="w-3 h-3 text-warning" />
+                                    )}
+                                  </div>
+                                  <div className="w-16 h-1 bg-muted rounded-full overflow-hidden mt-1">
+                                    <div 
+                                      className={`h-full rounded-full ${
+                                        status === 'completed' ? 'bg-success' : status === 'in-progress' ? 'bg-warning' : 'bg-muted'
+                                      }`}
+                                      style={{ width: `${progressPercent}%` }}
+                                    />
+                                  </div>
+                                </div>
                               </div>
-                              <span className="font-medium text-foreground">{member.profile.name}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 text-right font-mono text-foreground">
-                            {formatCurrency(member.totalPaid)}
-                          </td>
-                          <td className="py-3 text-right font-mono text-muted-foreground">
-                            {formatCurrency(balance)}
-                          </td>
-                          <td className="py-3 text-right">
-                            <StatusBadge status={status} showIcon={false} />
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            </td>
+                            <td className="py-3 text-right font-mono text-foreground text-sm">
+                              {formatCurrency(member.totalPaid)}
+                            </td>
+                            <td className="py-3 text-right font-mono text-muted-foreground text-sm">
+                              {balance > 0 ? formatCurrency(balance) : '—'}
+                            </td>
+                            <td className="py-3 text-right">
+                              <StatusBadge status={status} showIcon={false} />
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border bg-muted/30">
+                      <td className="py-3 font-semibold text-foreground">Total</td>
+                      <td className="py-3 text-right font-mono font-semibold text-success">
+                        {formatCurrency(totalCollected)}
+                      </td>
+                      <td className="py-3 text-right font-mono font-semibold text-warning">
+                        {formatCurrency(remainingAmount)}
+                      </td>
+                      <td className="py-3 text-right text-xs text-muted-foreground">
+                        {progressPercentage}%
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}
           </section>
 
           {/* Recent Payments */}
-          <section className="card-elevated p-6 animate-fade-in" style={{ animationDelay: '0.35s' }}>
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
-              Recent Payments
-            </h2>
+          <section className="card-elevated p-6 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                Recent Payments
+              </h2>
+              <span className="text-xs text-muted-foreground">
+                {allPayments.length} transactions
+              </span>
+            </div>
+            
             {allPayments.length === 0 ? (
               <p className="text-muted-foreground text-sm py-4 text-center">
                 No payments recorded yet.
               </p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {allPayments.map((payment) => (
                   <div 
                     key={payment.id}
-                    className="flex items-center justify-between py-3 border-b border-border last:border-0"
+                    className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-muted/30 transition-colors"
                   >
-                    <div>
-                      <p className="font-medium text-foreground">{payment.memberName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(payment.created_at).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-success" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground text-sm">{payment.memberName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(payment.created_at).toLocaleDateString('en-KE', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-mono font-semibold text-foreground">
-                        {formatCurrency(payment.amount)}
+                      <p className="font-mono font-semibold text-success text-sm">
+                        +{formatCurrency(payment.amount)}
                       </p>
-                      <span className="text-xs text-success">Completed</span>
                     </div>
                   </div>
                 ))}
@@ -234,6 +460,26 @@ export default function Treasurer() {
             )}
           </section>
         </div>
+
+        {/* Fund Summary Footer */}
+        <section className="mt-6 p-4 rounded-lg bg-muted/30 border border-border animate-fade-in" style={{ animationDelay: '0.55s' }}>
+          <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
+            <div className="flex items-center gap-4">
+              <div>
+                <span className="text-muted-foreground">Target:</span>
+                <span className="ml-1 font-semibold">{TOTAL_MEMBERS} × KES {TARGET_AMOUNT} = KES {totalTarget.toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Deadline:</span>
+                <span className="ml-1 font-semibold">{DEADLINE.toLocaleDateString('en-KE', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Calendar className="w-4 h-4" />
+              Last updated: {new Date().toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
+        </section>
       </div>
     </Layout>
   );
