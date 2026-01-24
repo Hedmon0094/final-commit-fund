@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
-import { TARGET_AMOUNT, TOTAL_TARGET, TOTAL_MEMBERS } from '@/lib/constants';
+import { TARGET_AMOUNT, TOTAL_MEMBERS } from '@/lib/constants';
 
 interface Contribution {
   id: string;
@@ -164,11 +164,17 @@ export function usePublicStats() {
     queryKey: ['public-stats'],
     queryFn: async () => {
       // Get count of members who have joined (profiles created)
-      const { count: memberCount, error: memberError } = await supabase
+      // Using the public_profiles view which bypasses RLS
+      const { data: profiles, error: memberError } = await supabase
         .from('public_profiles' as 'profiles')
-        .select('*', { count: 'exact', head: true });
+        .select('user_id');
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error('Error fetching profiles:', memberError);
+        throw memberError;
+      }
+
+      const memberCount = profiles?.length || 0;
 
       // Get total collected from all completed contributions
       const { data: contributions, error: contribError } = await supabase
@@ -176,7 +182,10 @@ export function usePublicStats() {
         .select('amount, user_id')
         .eq('status', 'completed');
 
-      if (contribError) throw contribError;
+      if (contribError) {
+        console.error('Error fetching contributions:', contribError);
+        throw contribError;
+      }
 
       const totalCollected = contributions?.reduce((sum, c) => sum + c.amount, 0) || 0;
       
@@ -194,21 +203,21 @@ export function usePublicStats() {
         else if (total > 0) inProgressCount++;
       });
 
-      const actualMemberCount = memberCount || 0;
-      const notStartedCount = actualMemberCount - completedCount - inProgressCount;
-      const totalTarget = actualMemberCount * TARGET_AMOUNT;
+      const notStartedCount = memberCount - completedCount - inProgressCount;
+      const totalTarget = TOTAL_MEMBERS * TARGET_AMOUNT; // Always use fixed total (7,000)
 
       return {
         totalCollected,
         totalTarget,
-        memberCount: actualMemberCount,
+        memberCount,
         completedCount,
         inProgressCount,
         notStartedCount: Math.max(0, notStartedCount),
         progressPercentage: totalTarget > 0 ? Math.round((totalCollected / totalTarget) * 100) : 0,
       };
     },
-    staleTime: 10000, // Cache for 10 seconds
+    staleTime: 5000, // Cache for 5 seconds for more responsive updates
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -224,7 +233,7 @@ export function useGroupStats() {
   if (!isTreasurer) {
     return publicStats || {
       totalCollected: 0,
-      totalTarget: TOTAL_TARGET,
+      totalTarget: TOTAL_MEMBERS * TARGET_AMOUNT,
       memberCount: 0,
       completedCount: 0,
       inProgressCount: 0,
