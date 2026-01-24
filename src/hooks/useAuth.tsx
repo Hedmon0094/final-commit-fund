@@ -8,6 +8,7 @@ interface Profile {
   name: string;
   email: string;
   phone?: string | null;
+  username?: string | null;
   is_treasurer: boolean;
 }
 
@@ -20,6 +21,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string, phone?: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  isProfileComplete: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -107,8 +110,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
+    }
+  };
+
+  const isProfileComplete = !!(profile?.phone && profile?.username);
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signIn, signUp, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, signIn, signUp, signInWithGoogle, signOut, refreshProfile, isProfileComplete }}>
       {children}
     </AuthContext.Provider>
   );

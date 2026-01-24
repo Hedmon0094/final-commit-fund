@@ -51,6 +51,7 @@ export type Database = {
           phone: string | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           created_at?: string
@@ -61,6 +62,7 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           created_at?: string
@@ -71,6 +73,7 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -83,6 +86,7 @@ export type Database = {
           is_treasurer: boolean | null
           name: string | null
           user_id: string | null
+          username: string | null
         }
         Insert: {
           created_at?: string | null
@@ -90,6 +94,7 @@ export type Database = {
           is_treasurer?: boolean | null
           name?: string | null
           user_id?: string | null
+          username?: string | null
         }
         Update: {
           created_at?: string | null
@@ -97,6 +102,7 @@ export type Database = {
           is_treasurer?: boolean | null
           name?: string | null
           user_id?: string | null
+          username?: string | null
         }
         Relationships: []
       }

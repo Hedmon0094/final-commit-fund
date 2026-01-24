@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Contribute from "./pages/Contribute";
 import GroupProgress from "./pages/GroupProgress";
 import Treasurer from "./pages/Treasurer";
+import ProfileSettings from "./pages/ProfileSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireTreasurer>
                   <Treasurer />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <ProfileSettings />
                 </ProtectedRoute>
               } 
             />

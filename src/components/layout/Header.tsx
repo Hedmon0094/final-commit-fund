@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Menu, X, Terminal, LogOut, User, ChevronDown } from "lucide-react";
+import { Menu, X, Terminal, LogOut, User, ChevronDown, Settings } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -109,6 +109,12 @@ export function Header() {
                       My Dashboard
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex items-center gap-2">
+                      <Settings className="w-4 h-4" />
+                      Profile Settings
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={handleSignOut}
@@ -194,6 +200,19 @@ export function Header() {
                     </Link>
                   )}
                   <div className="h-px bg-border/60 mx-3 my-2" />
+                  <Link
+                    to="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "px-3 py-2.5 mx-1 text-sm font-medium rounded-lg transition-colors flex items-center gap-2",
+                      isActivePath("/profile")
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                    )}
+                  >
+                    <Settings className="w-4 h-4" />
+                    Profile Settings
+                  </Link>
                   <button
                     onClick={() => {
                       handleSignOut();
