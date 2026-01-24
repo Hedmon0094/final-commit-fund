@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { ReminderManager } from "@/components/treasurer/ReminderManager";
 
 export default function Treasurer() {
   const { profile } = useAuth();
@@ -460,6 +461,11 @@ Join now: ${window.location.origin}/signup`;
             )}
           </section>
         </div>
+
+        {/* Reminder Manager Section */}
+        <section className="mt-6 animate-fade-in" style={{ animationDelay: '0.55s' }}>
+          <ReminderManager />
+        </section>
 
         {/* Fund Summary Footer */}
         <section className="mt-6 p-4 rounded-lg bg-muted/30 border border-border animate-fade-in" style={{ animationDelay: '0.55s' }}>
