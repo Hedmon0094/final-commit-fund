@@ -57,12 +57,14 @@ export default function Signup() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-5">
         <div className="text-center animate-fade-in">
-          <div className="w-16 h-16 rounded-full bg-success-muted flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 className="w-8 h-8 text-success" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Welcome aboard!</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight mb-2">
+            Welcome aboard!
+          </h1>
           <p className="text-muted-foreground">Redirecting to your dashboard...</p>
         </div>
       </div>
@@ -72,21 +74,25 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="p-4">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Terminal className="w-4 h-4 text-primary-foreground" />
+      <header className="p-5">
+        <Link to="/" className="inline-flex items-center gap-2.5 group">
+          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center transition-transform group-hover:scale-105">
+            <Terminal className="w-4.5 h-4.5 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-foreground">FinalCommit</span>
+          <span className="font-semibold text-foreground tracking-tight">FinalCommit</span>
         </Link>
       </header>
 
       {/* Signup Form */}
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center p-5">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-foreground mb-2">Join FinalCommit Fund</h1>
-            <p className="text-muted-foreground">Create your account to start contributing</p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight mb-2">
+              Join FinalCommit Fund
+            </h1>
+            <p className="text-muted-foreground">
+              Create your account to start contributing
+            </p>
           </div>
 
           {/* Google Sign Up */}
@@ -100,23 +106,25 @@ export default function Signup() {
               <span className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
+              <span className="bg-background px-3 text-muted-foreground font-medium">
+                Or continue with email
+              </span>
             </div>
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel className="text-sm font-medium">Full Name</FormLabel>
                     <FormControl>
                       <Input
                         type="text"
                         placeholder="Alex Mwangi"
-                        className="h-12"
+                        className="h-11"
                         {...field}
                       />
                     </FormControl>
@@ -130,12 +138,12 @@ export default function Signup() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-sm font-medium">Email</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
                         placeholder="you@example.com"
-                        className="h-12"
+                        className="h-11"
                         {...field}
                       />
                     </FormControl>
@@ -149,7 +157,7 @@ export default function Signup() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
+                    <FormLabel className="text-sm font-medium">
                       <span className="flex items-center gap-1.5">
                         <Phone className="w-3.5 h-3.5" />
                         Phone Number
@@ -160,11 +168,13 @@ export default function Signup() {
                       <Input
                         type="tel"
                         placeholder="0712345678"
-                        className="h-12"
+                        className="h-11"
                         {...field}
                       />
                     </FormControl>
-                    <FormDescription>For WhatsApp/SMS notifications</FormDescription>
+                    <FormDescription className="text-xs">
+                      For WhatsApp/SMS notifications
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -175,13 +185,13 @@ export default function Signup() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel className="text-sm font-medium">Password</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
                           type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
-                          className="h-12 pr-10"
+                          className="h-11 pr-10"
                           {...field}
                         />
                         <button
@@ -200,8 +210,8 @@ export default function Signup() {
               />
 
               {error && (
-                <div className="flex items-center gap-2 text-destructive text-sm animate-fade-in">
-                  <AlertCircle className="w-4 h-4" />
+                <div className="flex items-center gap-2 text-destructive text-sm p-3 rounded-lg bg-destructive/8 animate-fade-in">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   {error}
                 </div>
               )}
@@ -209,12 +219,12 @@ export default function Signup() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 gap-2"
+                className="w-full h-11 gap-2 shadow-sm"
                 size="lg"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     Creating account...
                   </>
                 ) : (

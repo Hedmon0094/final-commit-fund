@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -20,12 +19,10 @@ import {
   AlertTriangle, 
   Clock,
   CheckCircle2,
-  User,
   Users,
   Target,
   Calendar,
   Copy,
-  ExternalLink,
   UserPlus,
   Percent,
   ArrowUpRight,
@@ -50,7 +47,7 @@ export default function Treasurer() {
   
   // Use fixed total target
   const totalCollected = treasurerStats?.totalCollected ?? 0;
-  const totalTarget = TOTAL_TARGET; // Fixed at 7,000
+  const totalTarget = TOTAL_TARGET;
   const memberCount = members.length;
   const completedCount = treasurerStats?.completedCount ?? 0;
   const inProgressCount = treasurerStats?.inProgressCount ?? 0;
@@ -61,12 +58,10 @@ export default function Treasurer() {
   // Calculate additional stats
   const avgContribution = memberCount > 0 ? Math.round(totalCollected / memberCount) : 0;
   const remainingAmount = Math.max(0, totalTarget - totalCollected);
-  const collectionRate = memberCount > 0 ? Math.round((completedCount / memberCount) * 100) : 0;
 
   // Members who need attention
   const membersNotStarted = members.filter(m => m.totalPaid === 0);
   const membersInProgress = members.filter(m => m.totalPaid > 0 && m.totalPaid < TARGET_AMOUNT);
-  const membersCompleted = members.filter(m => m.totalPaid >= TARGET_AMOUNT);
 
   // Get all payments sorted by date
   const allPayments = members
@@ -78,7 +73,7 @@ export default function Treasurer() {
   const copySignupLink = () => {
     navigator.clipboard.writeText(window.location.origin + '/signup');
     toast({
-      title: "Link Copied!",
+      title: "Link Copied",
       description: "Signup link copied to clipboard",
     });
   };
@@ -96,7 +91,7 @@ Join now: ${window.location.origin}/signup`;
     
     navigator.clipboard.writeText(summary);
     toast({
-      title: "Summary Copied!",
+      title: "Summary Copied",
       description: "Progress summary copied to clipboard",
     });
   };
@@ -106,7 +101,7 @@ Join now: ${window.location.origin}/signup`;
       <Layout>
         <div className="container py-8 md:py-12">
           <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-muted rounded w-1/3" />
+            <div className="h-8 bg-muted rounded-lg w-1/3" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="card-elevated p-5 h-24" />
@@ -122,20 +117,18 @@ Join now: ${window.location.origin}/signup`;
     <Layout>
       <div className="container py-8 md:py-12">
         {/* Header */}
-        <section className="mb-8">
+        <header className="page-header">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Shield className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                    Treasurer Dashboard
-                  </h1>
+                  <h1 className="page-title">Treasurer Dashboard</h1>
                   <Crown className="w-5 h-5 text-warning" />
                 </div>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-sm mt-0.5">
                   Welcome back, {profile?.name || 'Treasurer'}
                 </p>
               </div>
@@ -147,41 +140,41 @@ Join now: ${window.location.origin}/signup`;
               <Link to="/group">
                 <Button variant="outline" size="sm" className="gap-2">
                   <BarChart3 className="w-4 h-4" />
-                  Group View
+                  <span className="hidden sm:inline">Group View</span>
                 </Button>
               </Link>
             </div>
           </div>
-        </section>
+        </header>
 
         {/* Main Progress Card */}
-        <section className="card-elevated p-6 mb-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
+        <section className="card-elevated p-6 md:p-8 mb-6 animate-fade-in">
+          <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Wallet className="w-5 h-5 text-primary" />
               <h2 className="font-semibold text-foreground">Fund Collection Status</h2>
             </div>
-            <span className="text-2xl font-bold text-primary">{progressPercentage}%</span>
+            <span className="text-3xl font-bold text-primary">{progressPercentage}%</span>
           </div>
           
-          <ProgressBar value={totalCollected} max={totalTarget} size="lg" className="mb-4" />
+          <ProgressBar value={totalCollected} max={totalTarget} size="lg" className="mb-6" />
           
-          <div className="grid grid-cols-4 gap-4 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Collected</p>
-              <p className="text-lg font-bold text-success">KES {totalCollected.toLocaleString()}</p>
+              <p className="stat-label">Collected</p>
+              <p className="text-xl font-bold text-success font-mono">{formatCurrency(totalCollected)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Remaining</p>
-              <p className="text-lg font-bold text-warning">KES {remainingAmount.toLocaleString()}</p>
+              <p className="stat-label">Remaining</p>
+              <p className="text-xl font-bold text-warning font-mono">{formatCurrency(remainingAmount)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Group Target</p>
-              <p className="text-lg font-bold text-foreground">KES {totalTarget.toLocaleString()}</p>
+              <p className="stat-label">Group Target</p>
+              <p className="text-xl font-bold text-foreground font-mono">{formatCurrency(totalTarget)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Days Left</p>
-              <p className={`text-lg font-bold ${daysLeft <= 14 ? 'text-destructive' : 'text-foreground'}`}>
+              <p className="stat-label">Days Left</p>
+              <p className={`text-xl font-bold ${daysLeft <= 14 ? 'text-destructive' : 'text-foreground'}`}>
                 {daysLeft}
               </p>
             </div>
@@ -190,52 +183,60 @@ Join now: ${window.location.origin}/signup`;
 
         {/* Overview Stats */}
         <section className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          <div className="card-elevated p-4 animate-fade-in">
-            <div className="flex items-center gap-2 mb-2">
-              <Target className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">Per Member</span>
+          <div className="stat-card animate-fade-in">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Target className="w-4 h-4 text-primary" />
+              </div>
             </div>
-            <p className="text-xl font-bold text-foreground">KES {TARGET_AMOUNT}</p>
+            <p className="stat-label">Per Member</p>
+            <p className="stat-value font-mono">{formatCurrency(TARGET_AMOUNT)}</p>
           </div>
 
-          <div className="card-elevated p-4 animate-fade-in" style={{ animationDelay: '0.05s' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">Joined</span>
+          <div className="stat-card animate-fade-in" style={{ animationDelay: '0.05s' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Users className="w-4 h-4 text-primary" />
+              </div>
             </div>
-            <p className="text-xl font-bold text-foreground">{memberCount} / {TOTAL_MEMBERS}</p>
+            <p className="stat-label">Joined</p>
+            <p className="stat-value">{memberCount}<span className="text-muted-foreground font-normal">/{TOTAL_MEMBERS}</span></p>
           </div>
 
-          <div className="card-elevated p-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle2 className="w-4 h-4 text-success" />
-              <span className="text-xs text-muted-foreground">Completed</span>
+          <div className="stat-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="w-4 h-4 text-success" />
+              </div>
             </div>
-            <p className="text-xl font-bold text-success">{completedCount}</p>
+            <p className="stat-label">Completed</p>
+            <p className="stat-value text-success">{completedCount}</p>
           </div>
 
-          <div className="card-elevated p-4 animate-fade-in" style={{ animationDelay: '0.15s' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-warning" />
-              <span className="text-xs text-muted-foreground">In Progress</span>
+          <div className="stat-card animate-fade-in" style={{ animationDelay: '0.15s' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Clock className="w-4 h-4 text-warning" />
+              </div>
             </div>
-            <p className="text-xl font-bold text-warning">{inProgressCount}</p>
+            <p className="stat-label">In Progress</p>
+            <p className="stat-value text-warning">{inProgressCount}</p>
           </div>
 
-          <div className="card-elevated p-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <Percent className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Avg. Paid</span>
+          <div className="stat-card animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                <Percent className="w-4 h-4 text-muted-foreground" />
+              </div>
             </div>
-            <p className="text-xl font-bold text-foreground">KES {avgContribution}</p>
+            <p className="stat-label">Avg. Paid</p>
+            <p className="stat-value font-mono">{formatCurrency(avgContribution)}</p>
           </div>
         </section>
 
         {/* Quick Actions */}
-        <section className="card-elevated p-4 mb-6 animate-fade-in" style={{ animationDelay: '0.25s' }}>
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
-            Quick Actions
-          </h3>
+        <section className="card-elevated p-5 mb-6 animate-fade-in" style={{ animationDelay: '0.25s' }}>
+          <h3 className="section-header mb-4">Quick Actions</h3>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-2" onClick={copySignupLink}>
               <Copy className="w-4 h-4" />
@@ -243,12 +244,12 @@ Join now: ${window.location.origin}/signup`;
             </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={copyProgressSummary}>
               <Mail className="w-4 h-4" />
-              Copy Progress Summary
+              Copy Summary
             </Button>
             <Link to="/contribute">
               <Button variant="outline" size="sm" className="gap-2">
                 <ArrowUpRight className="w-4 h-4" />
-                Make Contribution
+                Contribute
               </Button>
             </Link>
           </div>
@@ -258,13 +259,13 @@ Join now: ${window.location.origin}/signup`;
         {(notJoinedCount > 0 || membersNotStarted.length > 0 || (daysLeft <= 14 && membersInProgress.length > 0)) && (
           <section className="mb-6 space-y-3">
             {notJoinedCount > 0 && (
-              <div className="card-elevated p-4 border-l-4 border-l-secondary animate-fade-in" style={{ animationDelay: '0.3s' }}>
+              <div className="notice-card-info animate-fade-in" style={{ animationDelay: '0.3s' }}>
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <UserPlus className="w-5 h-5 text-secondary-foreground flex-shrink-0 mt-0.5" />
+                    <UserPlus className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-foreground mb-1">
-                        {notJoinedCount} member{notJoinedCount > 1 ? 's' : ''} haven't signed up yet
+                        {notJoinedCount} member{notJoinedCount > 1 ? 's' : ''} haven't signed up
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Share the signup link with remaining members
@@ -279,7 +280,7 @@ Join now: ${window.location.origin}/signup`;
             )}
 
             {membersNotStarted.length > 0 && (
-              <div className="card-elevated p-4 border-l-4 border-l-warning animate-fade-in" style={{ animationDelay: '0.35s' }}>
+              <div className="notice-card-warning animate-fade-in" style={{ animationDelay: '0.35s' }}>
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
                   <div>
@@ -295,7 +296,7 @@ Join now: ${window.location.origin}/signup`;
             )}
 
             {daysLeft <= 14 && membersInProgress.length > 0 && (
-              <div className="card-elevated p-4 border-l-4 border-l-destructive animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              <div className="notice-card-error animate-fade-in" style={{ animationDelay: '0.4s' }}>
                 <div className="flex items-start gap-3">
                   <Clock className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                   <div>
@@ -303,7 +304,7 @@ Join now: ${window.location.origin}/signup`;
                       {membersInProgress.length} member{membersInProgress.length > 1 ? 's' : ''} still in progress
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Only {daysLeft} days left - deadline: {DEADLINE.toLocaleDateString('en-KE', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      Only {daysLeft} days left — deadline: {DEADLINE.toLocaleDateString('en-KE', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
                 </div>
@@ -314,64 +315,62 @@ Join now: ${window.location.origin}/signup`;
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* All Members Table */}
-          <section className="card-elevated p-6 animate-fade-in" style={{ animationDelay: '0.45s' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                All Members ({memberCount})
-              </h2>
+          <section className="card-elevated overflow-hidden animate-fade-in" style={{ animationDelay: '0.45s' }}>
+            <div className="p-5 border-b border-border/60 flex items-center justify-between">
+              <h2 className="section-header">All Members ({memberCount})</h2>
               <div className="flex items-center gap-1 text-xs">
-                <span className="px-2 py-0.5 rounded bg-success/10 text-success">{completedCount}</span>
-                <span className="px-2 py-0.5 rounded bg-warning/10 text-warning">{inProgressCount}</span>
-                <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground">{notStartedCount}</span>
+                <span className="px-2 py-0.5 rounded-md bg-success/10 text-success font-medium">{completedCount}</span>
+                <span className="px-2 py-0.5 rounded-md bg-warning/10 text-warning font-medium">{inProgressCount}</span>
+                <span className="px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-medium">{notStartedCount}</span>
               </div>
             </div>
             
             {members.length === 0 ? (
-              <p className="text-muted-foreground text-sm py-4 text-center">
-                No members have joined yet.
-              </p>
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground text-sm">No members have joined yet.</p>
+              </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="data-table">
                   <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-2 text-muted-foreground font-medium">Name</th>
-                      <th className="text-right py-2 text-muted-foreground font-medium">Paid</th>
-                      <th className="text-right py-2 text-muted-foreground font-medium">Balance</th>
-                      <th className="text-right py-2 text-muted-foreground font-medium">Status</th>
+                    <tr>
+                      <th>Name</th>
+                      <th className="text-right">Paid</th>
+                      <th className="text-right">Balance</th>
+                      <th className="text-right">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {[...members]
-                      .sort((a, b) => b.totalPaid - a.totalPaid) // Sort by amount paid (highest first)
+                      .sort((a, b) => b.totalPaid - a.totalPaid)
                       .map((member) => {
                         const status = getMemberStatus(member.totalPaid);
                         const balance = Math.max(0, TARGET_AMOUNT - member.totalPaid);
                         const progressPercent = Math.min(100, Math.round((member.totalPaid / TARGET_AMOUNT) * 100));
                         
                         return (
-                          <tr key={member.profile.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                            <td className="py-3">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+                          <tr key={member.profile.id}>
+                            <td>
+                              <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
                                   status === 'completed' 
                                     ? 'bg-success/10 text-success' 
                                     : status === 'in-progress'
                                       ? 'bg-warning/10 text-warning'
-                                      : 'bg-secondary text-secondary-foreground'
+                                      : 'bg-muted text-muted-foreground'
                                 }`}>
                                   {member.profile.name.charAt(0)}
                                 </div>
                                 <div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-medium text-foreground text-sm">{member.profile.name}</span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-medium text-foreground">{member.profile.name}</span>
                                     {member.profile.is_treasurer && (
                                       <Crown className="w-3 h-3 text-warning" />
                                     )}
                                   </div>
-                                  <div className="w-16 h-1 bg-muted rounded-full overflow-hidden mt-1">
+                                  <div className="w-16 h-1 bg-muted rounded-full overflow-hidden mt-1.5">
                                     <div 
-                                      className={`h-full rounded-full ${
+                                      className={`h-full rounded-full transition-all ${
                                         status === 'completed' ? 'bg-success' : status === 'in-progress' ? 'bg-warning' : 'bg-muted'
                                       }`}
                                       style={{ width: `${progressPercent}%` }}
@@ -380,13 +379,13 @@ Join now: ${window.location.origin}/signup`;
                                 </div>
                               </div>
                             </td>
-                            <td className="py-3 text-right font-mono text-foreground text-sm">
+                            <td className="text-right font-mono text-foreground">
                               {formatCurrency(member.totalPaid)}
                             </td>
-                            <td className="py-3 text-right font-mono text-muted-foreground text-sm">
+                            <td className="text-right font-mono text-muted-foreground">
                               {balance > 0 ? formatCurrency(balance) : '—'}
                             </td>
-                            <td className="py-3 text-right">
+                            <td className="text-right">
                               <StatusBadge status={status} showIcon={false} />
                             </td>
                           </tr>
@@ -395,14 +394,14 @@ Join now: ${window.location.origin}/signup`;
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 border-border bg-muted/30">
-                      <td className="py-3 font-semibold text-foreground">Total</td>
-                      <td className="py-3 text-right font-mono font-semibold text-success">
+                      <td className="font-semibold text-foreground">Total</td>
+                      <td className="text-right font-mono font-semibold text-success">
                         {formatCurrency(totalCollected)}
                       </td>
-                      <td className="py-3 text-right font-mono font-semibold text-warning">
+                      <td className="text-right font-mono font-semibold text-warning">
                         {formatCurrency(remainingAmount)}
                       </td>
-                      <td className="py-3 text-right text-xs text-muted-foreground">
+                      <td className="text-right text-xs text-muted-foreground font-medium">
                         {progressPercentage}%
                       </td>
                     </tr>
@@ -413,29 +412,27 @@ Join now: ${window.location.origin}/signup`;
           </section>
 
           {/* Recent Payments */}
-          <section className="card-elevated p-6 animate-fade-in" style={{ animationDelay: '0.5s' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Recent Payments
-              </h2>
-              <span className="text-xs text-muted-foreground">
+          <section className="card-elevated overflow-hidden animate-fade-in" style={{ animationDelay: '0.5s' }}>
+            <div className="p-5 border-b border-border/60 flex items-center justify-between">
+              <h2 className="section-header">Recent Payments</h2>
+              <span className="text-xs text-muted-foreground font-medium">
                 {allPayments.length} transactions
               </span>
             </div>
             
             {allPayments.length === 0 ? (
-              <p className="text-muted-foreground text-sm py-4 text-center">
-                No payments recorded yet.
-              </p>
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground text-sm">No payments recorded yet.</p>
+              </div>
             ) : (
-              <div className="space-y-2">
+              <div className="divide-y divide-border/60">
                 {allPayments.map((payment) => (
                   <div 
                     key={payment.id}
-                    className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-muted/30 transition-colors"
+                    className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-full bg-success/10 flex items-center justify-center">
                         <TrendingUp className="w-4 h-4 text-success" />
                       </div>
                       <div>
@@ -450,11 +447,9 @@ Join now: ${window.location.origin}/signup`;
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-mono font-semibold text-success text-sm">
-                        +{formatCurrency(payment.amount)}
-                      </p>
-                    </div>
+                    <p className="font-mono font-semibold text-success text-sm">
+                      +{formatCurrency(payment.amount)}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -468,21 +463,21 @@ Join now: ${window.location.origin}/signup`;
         </section>
 
         {/* Fund Summary Footer */}
-        <section className="mt-6 p-4 rounded-lg bg-muted/30 border border-border animate-fade-in" style={{ animationDelay: '0.55s' }}>
+        <section className="mt-6 p-5 rounded-xl bg-muted/40 border border-border/60 animate-fade-in" style={{ animationDelay: '0.6s' }}>
           <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <div>
                 <span className="text-muted-foreground">Target:</span>
-                <span className="ml-1 font-semibold">{TOTAL_MEMBERS} × KES {TARGET_AMOUNT} = KES {totalTarget.toLocaleString()}</span>
+                <span className="ml-2 font-semibold text-foreground">{TOTAL_MEMBERS} × {formatCurrency(TARGET_AMOUNT)} = {formatCurrency(totalTarget)}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">Deadline:</span>
-                <span className="ml-1 font-semibold">{DEADLINE.toLocaleDateString('en-KE', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                <span className="ml-2 font-semibold text-foreground">{DEADLINE.toLocaleDateString('en-KE', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
               </div>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Calendar className="w-4 h-4" />
-              Last updated: {new Date().toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })}
+              Updated {new Date().toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
         </section>
