@@ -47,20 +47,29 @@ Deno.serve(async (req) => {
     const rawBody = await req.text();
     const signature = req.headers.get('x-paystack-signature');
 
-    // Verify webhook signature
-    if (signature) {
-      const hash = createHmac('sha512', PAYSTACK_SECRET_KEY)
-        .update(rawBody)
-        .digest('hex');
-      
-      if (hash !== signature) {
-        console.error('Invalid webhook signature');
-        return new Response(JSON.stringify({ error: 'Invalid signature' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+    // SECURITY: Signature validation is MANDATORY
+    if (!signature) {
+      console.error('Missing webhook signature - rejecting request');
+      return new Response(JSON.stringify({ error: 'Missing signature' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+
+    // Verify webhook signature
+    const hash = createHmac('sha512', PAYSTACK_SECRET_KEY)
+      .update(rawBody)
+      .digest('hex');
+    
+    if (hash !== signature) {
+      console.error('Invalid webhook signature - rejecting request');
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    console.log('Webhook signature verified successfully');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
