@@ -11,7 +11,7 @@ import {
   TOTAL_MEMBERS,
   TOTAL_TARGET,
 } from "@/lib/constants";
-import { Target, Users, ArrowRight, CheckCircle2, Loader2, TrendingUp, Sparkles, Trophy } from "lucide-react";
+import { Target, Users, ArrowRight, CheckCircle2, Loader2, TrendingUp, Trophy } from "lucide-react";
 
 export default function Index() {
   const { user } = useAuth();
@@ -22,7 +22,7 @@ export default function Index() {
   const { data: stats, isLoading } = usePublicStats();
   
   const totalCollected = stats?.totalCollected ?? 0;
-  const totalTarget = TOTAL_TARGET; // Fixed at 7,000 (10 members × 700)
+  const totalTarget = TOTAL_TARGET;
   const memberCount = stats?.memberCount ?? 0;
   const completedCount = stats?.completedCount ?? 0;
   const inProgressCount = stats?.inProgressCount ?? 0;
@@ -34,46 +34,47 @@ export default function Index() {
 
   return (
     <Layout>
-      <div className="container py-8 md:py-12">
+      <div className="container py-10 md:py-16">
         {/* Hero Section */}
-        <section className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4 animate-fade-in">
-            <Sparkles className="w-4 h-4" />
-            Final Stretch to May 1st!
+        <section className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 text-primary text-sm font-medium mb-5 animate-fade-in">
+            <Trophy className="w-4 h-4" />
+            <span>Final Stretch to May 1st</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-            FinalCommit Fund
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight mb-4">
+            FinalCommit<span className="text-primary">.</span>Fund
           </h1>
-          <p className="text-lg text-muted-foreground max-w-md mx-auto">
-            One last contribution before the final celebration.
+          <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
+            One last contribution before the celebration.
           </p>
         </section>
 
-        {/* Overall Progress Card */}
+        {/* Main Progress Card */}
         <section className="card-elevated p-6 md:p-8 mb-8 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Overall Progress
-              </h2>
-              {progressPercentage >= 50 && (
-                <Trophy className="w-4 h-4 text-warning animate-pulse" />
-              )}
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <p className="section-header mb-1">Overall Progress</p>
+              <p className="text-sm text-muted-foreground">Group collection status</p>
             </div>
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin text-primary" />
             ) : (
-              <span className="text-2xl font-bold text-primary">{progressPercentage}%</span>
+              <div className="text-right">
+                <span className="text-3xl font-bold text-primary">{progressPercentage}%</span>
+                {progressPercentage >= 50 && (
+                  <Trophy className="w-4 h-4 text-warning inline-block ml-2 mb-1" />
+                )}
+              </div>
             )}
           </div>
           
-          <ProgressBar value={totalCollected} max={totalTarget} size="lg" className="mb-6" />
+          <ProgressBar value={totalCollected} max={totalTarget} size="lg" className="mb-8" />
           
-          <div className="flex items-center justify-between">
+          <div className="grid grid-cols-2 gap-8">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Collected</p>
               {isLoading ? (
-                <div className="h-8 w-24 bg-muted animate-pulse rounded" />
+                <div className="h-8 w-28 bg-muted animate-pulse rounded-lg" />
               ) : (
                 <div className="flex items-center gap-2">
                   <MoneyDisplay amount={totalCollected} size="lg" />
@@ -90,50 +91,52 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Info Cards Grid */}
+        {/* Stats Grid */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
           {/* Per Member Target */}
-          <div className="card-elevated p-5 flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <div className="stat-card flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <div className="w-11 h-11 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0">
               <Target className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Per Member Target</p>
+              <p className="stat-label">Per Member</p>
               <MoneyDisplay amount={TARGET_AMOUNT} size="md" />
-              <p className="text-xs text-muted-foreground mt-1">× {TOTAL_MEMBERS} members = KES {TOTAL_TARGET.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                × {TOTAL_MEMBERS} members
+              </p>
             </div>
           </div>
 
           {/* Countdown Timer */}
-          <div className="card-elevated p-5 flex items-center justify-center animate-fade-in" style={{ animationDelay: '0.15s' }}>
+          <div className="stat-card flex items-center justify-center animate-fade-in" style={{ animationDelay: '0.15s' }}>
             <CountdownTimer />
           </div>
 
           {/* Members Status */}
-          <div className="card-elevated p-5 flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <div className="stat-card flex items-start gap-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="w-11 h-11 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0">
               <Users className="w-5 h-5 text-primary" />
             </div>
-            <div className="flex-1">
-              <p className="text-sm text-muted-foreground mb-1">Members Joined</p>
+            <div className="flex-1 min-w-0">
+              <p className="stat-label">Members</p>
               {isLoading ? (
-                <div className="h-7 w-20 bg-muted animate-pulse rounded" />
+                <div className="h-7 w-16 bg-muted animate-pulse rounded" />
               ) : (
                 <>
-                  <p className="text-lg font-semibold text-foreground">
-                    {memberCount} of {TOTAL_MEMBERS}
+                  <p className="stat-value">
+                    {memberCount}<span className="text-muted-foreground font-normal">/{TOTAL_MEMBERS}</span>
                   </p>
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {completedCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-success/10 text-success">
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-success/10 text-success font-medium">
                         <CheckCircle2 className="w-3 h-3" />
-                        {completedCount} completed
+                        {completedCount}
                       </span>
                     )}
                     {inProgressCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-warning/10 text-warning">
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-warning/10 text-warning font-medium">
                         <TrendingUp className="w-3 h-3" />
-                        {inProgressCount} in progress
+                        {inProgressCount}
                       </span>
                     )}
                   </div>
@@ -145,22 +148,26 @@ export default function Index() {
 
         {/* Quick Stats Row */}
         {!isLoading && activeMembers > 0 && (
-          <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10 animate-fade-in" style={{ animationDelay: '0.25s' }}>
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-12 animate-fade-in" style={{ animationDelay: '0.25s' }}>
             <div className="card-elevated p-4 text-center">
               <p className="text-2xl font-bold text-foreground">{activeMembers}</p>
-              <p className="text-xs text-muted-foreground">Active Contributors</p>
+              <p className="text-xs text-muted-foreground font-medium mt-1">Active Contributors</p>
             </div>
             <div className="card-elevated p-4 text-center">
-              <p className="text-2xl font-bold text-foreground">KES {avgContribution.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">Avg. Contribution</p>
+              <p className="text-2xl font-bold text-foreground font-mono">
+                {avgContribution.toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground font-medium mt-1">Avg. Contribution</p>
             </div>
             <div className="card-elevated p-4 text-center">
-              <p className="text-2xl font-bold text-foreground">KES {(totalTarget - totalCollected).toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">Remaining</p>
+              <p className="text-2xl font-bold text-foreground font-mono">
+                {(totalTarget - totalCollected).toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground font-medium mt-1">Remaining (KES)</p>
             </div>
             <div className="card-elevated p-4 text-center">
               <p className="text-2xl font-bold text-foreground">{TOTAL_MEMBERS - memberCount}</p>
-              <p className="text-xs text-muted-foreground">Spots Left</p>
+              <p className="text-xs text-muted-foreground font-medium mt-1">Spots Left</p>
             </div>
           </section>
         )}
@@ -169,7 +176,7 @@ export default function Index() {
         <section className="text-center animate-fade-in" style={{ animationDelay: '0.3s' }}>
           {user ? (
             <Link to="/dashboard">
-              <Button size="lg" className="gap-2 px-8">
+              <Button size="lg" className="gap-2 px-8 shadow-sm">
                 View My Contribution
                 <ArrowRight className="w-4 h-4" />
               </Button>
@@ -177,7 +184,7 @@ export default function Index() {
           ) : (
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/signup">
-                <Button size="lg" className="gap-2 px-8 w-full sm:w-auto">
+                <Button size="lg" className="gap-2 px-8 w-full sm:w-auto shadow-sm">
                   Join Now
                   <ArrowRight className="w-4 h-4" />
                 </Button>

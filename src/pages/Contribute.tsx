@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { useMyTotal } from "@/hooks/useContributions";
-import { useAuth } from "@/hooks/useAuth";
 import { TARGET_AMOUNT, formatCurrency } from "@/lib/constants";
 import { ArrowLeft, Loader2, CheckCircle2, AlertCircle, Smartphone } from "lucide-react";
 import { toast } from "sonner";
@@ -13,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function Contribute() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const totalPaid = useMyTotal();
   const remaining = Math.max(0, TARGET_AMOUNT - totalPaid);
   
@@ -52,7 +50,6 @@ export default function Contribute() {
         body: {
           amount: numericAmount,
           phone_number: phoneNumber,
-          // user_id is extracted from JWT on server side for security
         },
       });
 
@@ -79,13 +76,17 @@ export default function Contribute() {
   if (success) {
     return (
       <Layout>
-        <div className="container py-8 md:py-12 max-w-lg mx-auto">
+        <div className="container py-12 md:py-16 max-w-lg mx-auto">
           <div className="text-center animate-fade-in">
-            <div className="w-16 h-16 rounded-full bg-success-muted flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-5">
               <CheckCircle2 className="w-8 h-8 text-success" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Thank you!</h1>
-            <p className="text-muted-foreground">Your contribution of {formatCurrency(numericAmount)} has been recorded.</p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight mb-2">
+              Thank you!
+            </h1>
+            <p className="text-muted-foreground">
+              Your contribution of {formatCurrency(numericAmount)} has been recorded.
+            </p>
           </div>
         </div>
       </Layout>
@@ -95,18 +96,24 @@ export default function Contribute() {
   if (remaining === 0) {
     return (
       <Layout>
-        <div className="container py-8 md:py-12 max-w-lg mx-auto">
+        <div className="container py-12 md:py-16 max-w-lg mx-auto">
           <button 
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors text-sm font-medium"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
-          <div className="card-elevated p-6 text-center">
-            <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-4" />
-            <h1 className="text-xl font-bold text-foreground mb-2">All Done!</h1>
-            <p className="text-muted-foreground">You've already completed your contribution target.</p>
+          <div className="card-elevated p-8 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-5">
+              <CheckCircle2 className="w-7 h-7 text-success" />
+            </div>
+            <h1 className="text-xl font-bold text-foreground tracking-tight mb-2">
+              All Done!
+            </h1>
+            <p className="text-muted-foreground">
+              You've already completed your contribution target.
+            </p>
           </div>
         </div>
       </Layout>
@@ -119,26 +126,24 @@ export default function Contribute() {
         {/* Back Button */}
         <button 
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors text-sm font-medium"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
         </button>
 
         {/* Header */}
-        <section className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-            Make a Contribution
-          </h1>
-          <p className="text-muted-foreground">
-            Enter any amount up to your remaining balance.
+        <header className="page-header">
+          <h1 className="page-title">Make a Contribution</h1>
+          <p className="page-description">
+            Enter any amount up to your remaining balance
           </p>
-        </section>
+        </header>
 
         {/* Remaining Balance Card */}
         <section className="card-elevated p-5 mb-8 animate-fade-in">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Remaining Balance</span>
+            <span className="text-sm font-medium text-muted-foreground">Remaining Balance</span>
             <MoneyDisplay amount={remaining} size="md" />
           </div>
         </section>
@@ -196,16 +201,18 @@ export default function Contribute() {
         {/* Quick Amount Buttons */}
         {quickAmounts.length > 0 && (
           <section className="mb-8 animate-fade-in" style={{ animationDelay: '0.15s' }}>
-            <p className="text-xs text-muted-foreground mb-3">Quick select</p>
+            <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
+              Quick select
+            </p>
             <div className="flex flex-wrap gap-2">
               {quickAmounts.map((quickAmount) => (
                 <button
                   key={quickAmount}
                   onClick={() => handleQuickAmount(quickAmount)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                     numericAmount === quickAmount
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-accent'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
                   {quickAmount === remaining ? 'Pay All' : formatCurrency(quickAmount)}
@@ -217,8 +224,8 @@ export default function Contribute() {
 
         {/* Error Message */}
         {error && (
-          <div className="flex items-center gap-2 text-destructive text-sm mb-4 animate-fade-in">
-            <AlertCircle className="w-4 h-4" />
+          <div className="flex items-center gap-2 text-destructive text-sm p-3 rounded-lg bg-destructive/8 mb-6 animate-fade-in">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {error}
           </div>
         )}
@@ -228,7 +235,7 @@ export default function Contribute() {
           <Button
             onClick={handleSubmit}
             disabled={!isValidAmount || !isValidPhone || isProcessing}
-            className="w-full h-14 text-base gap-2"
+            className="w-full h-14 text-base gap-2 shadow-sm"
             size="lg"
           >
             {isProcessing ? (
@@ -243,8 +250,8 @@ export default function Contribute() {
               </>
             )}
           </Button>
-          <p className="text-xs text-muted-foreground text-center mt-3">
-            You'll receive an M-Pesa prompt on your phone to complete payment.
+          <p className="text-xs text-muted-foreground text-center mt-4">
+            You'll receive an M-Pesa prompt on your phone to complete payment
           </p>
         </section>
       </div>

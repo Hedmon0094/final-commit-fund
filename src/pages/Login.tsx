@@ -55,21 +55,25 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="p-4">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Terminal className="w-4 h-4 text-primary-foreground" />
+      <header className="p-5">
+        <Link to="/" className="inline-flex items-center gap-2.5 group">
+          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center transition-transform group-hover:scale-105">
+            <Terminal className="w-4.5 h-4.5 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-foreground">FinalCommit</span>
+          <span className="font-semibold text-foreground tracking-tight">FinalCommit</span>
         </Link>
       </header>
 
       {/* Login Form */}
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center p-5">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-foreground mb-2">Welcome back</h1>
-            <p className="text-muted-foreground">Sign in to view your contributions</p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight mb-2">
+              Welcome back
+            </h1>
+            <p className="text-muted-foreground">
+              Sign in to view your contributions
+            </p>
           </div>
 
           {/* Google Sign In */}
@@ -83,23 +87,25 @@ export default function Login() {
               <span className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
+              <span className="bg-background px-3 text-muted-foreground font-medium">
+                Or continue with email
+              </span>
             </div>
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
                 control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-sm font-medium">Email</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
                         placeholder="you@example.com"
-                        className="h-12"
+                        className="h-11"
                         {...field}
                       />
                     </FormControl>
@@ -114,10 +120,10 @@ export default function Login() {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="text-sm font-medium">Password</FormLabel>
                       <Link
                         to="/forgot-password"
-                        className="text-xs text-primary hover:underline"
+                        className="text-xs text-primary hover:underline font-medium"
                       >
                         Forgot password?
                       </Link>
@@ -127,7 +133,7 @@ export default function Login() {
                         <Input
                           type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
-                          className="h-12 pr-10"
+                          className="h-11 pr-10"
                           {...field}
                         />
                         <button
@@ -160,8 +166,8 @@ export default function Login() {
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 text-destructive text-sm animate-fade-in">
-                  <AlertCircle className="w-4 h-4" />
+                <div className="flex items-center gap-2 text-destructive text-sm p-3 rounded-lg bg-destructive/8 animate-fade-in">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   {error}
                 </div>
               )}
@@ -169,12 +175,12 @@ export default function Login() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 gap-2"
+                className="w-full h-11 gap-2 shadow-sm"
                 size="lg"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     Signing in...
                   </>
                 ) : (
