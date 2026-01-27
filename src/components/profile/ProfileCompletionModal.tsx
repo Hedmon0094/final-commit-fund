@@ -26,11 +26,10 @@ import {
 } from '@/components/ui/dialog';
 
 const profileSchema = z.object({
-  username: z
+  name: z
     .string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(30, 'Username must be less than 30 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must be less than 100 characters'),
   phone: z
     .string()
     .regex(/^0[17]\d{8}$/, 'Phone number must be 10 digits starting with 07 or 01 (e.g., 0712345678)')
@@ -53,15 +52,15 @@ export function ProfileCompletionModal({ open, onComplete }: ProfileCompletionMo
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      username: '',
-      phone: '',
+      name: profile?.name || '',
+      phone: profile?.phone || '',
     },
   });
 
   useEffect(() => {
     if (profile) {
       form.reset({
-        username: profile.username || '',
+        name: profile.name || '',
         phone: profile.phone || '',
       });
     }
@@ -74,26 +73,10 @@ export function ProfileCompletionModal({ open, onComplete }: ProfileCompletionMo
     setLoading(true);
 
     try {
-      // Check if username is already taken
-      const { data: existingUser, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('username', data.username.toLowerCase())
-        .neq('user_id', user.id)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      if (existingUser) {
-        setError('This username is already taken. Please choose another.');
-        setLoading(false);
-        return;
-      }
-
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          username: data.username.toLowerCase(),
+          name: data.name.trim(),
           phone: data.phone,
           onboarding_completed: true,
         })
@@ -137,7 +120,7 @@ export function ProfileCompletionModal({ open, onComplete }: ProfileCompletionMo
         <DialogHeader>
           <DialogTitle className="text-xl">Complete Your Profile</DialogTitle>
           <DialogDescription>
-            Please add your username and phone number to complete your registration.
+            Please confirm your name and add your phone number to complete your registration.
           </DialogDescription>
         </DialogHeader>
 
@@ -145,26 +128,25 @@ export function ProfileCompletionModal({ open, onComplete }: ProfileCompletionMo
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 mt-4">
             <FormField
               control={form.control}
-              name="username"
+              name="name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-medium">
                     <span className="flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5" />
-                      Username
+                      Full Name
                     </span>
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="text"
-                      placeholder="johndoe"
+                      placeholder="John Doe"
                       className="h-11"
                       {...field}
-                      onChange={(e) => field.onChange(e.target.value.toLowerCase())}
                     />
                   </FormControl>
                   <FormDescription className="text-xs">
-                    This will be your unique identifier
+                    Your display name in the app
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
