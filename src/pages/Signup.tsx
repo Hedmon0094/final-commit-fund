@@ -34,6 +34,9 @@ export default function Signup() {
     const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/login?verified=true`,
+      },
     });
 
     if (error) {
@@ -51,27 +54,9 @@ export default function Signup() {
       await supabase.auth.signOut();
     }
 
-    // Send verification email via our custom function
-    try {
-      const { error: emailError } = await supabase.functions.invoke('send-verification-code', {
-        body: { 
-          email: data.email,
-          redirectUrl: window.location.origin,
-        },
-      });
-
-      if (emailError) {
-        console.error('Failed to send verification email:', emailError);
-        toast.error('Account created but failed to send verification email. Please try resending.');
-      } else {
-        toast.success('Account created! Please check your email for the verification link.');
-      }
-    } catch (err) {
-      console.error('Failed to send verification email:', err);
-      toast.error('Account created but failed to send verification email. Please try resending.');
-    }
-
+    toast.success('Account created! Please check your email for the verification link.');
     navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
+    setLoading(false);
   };
 
   return (
