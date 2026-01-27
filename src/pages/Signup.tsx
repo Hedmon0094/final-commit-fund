@@ -49,8 +49,8 @@ export default function Signup() {
       return;
     }
 
-    toast.success('Account created! Please check your email to verify.');
-    navigate('/verify-email');
+    toast.success('Account created! Please check your email for the verification code.');
+    navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
   };
 
   return (
