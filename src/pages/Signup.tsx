@@ -14,30 +14,19 @@ import { toast } from 'sonner';
 export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
-      name: '',
       email: '',
-      phone: '',
       password: '',
       confirmPassword: '',
     },
   });
 
   const password = form.watch('password');
-
-  const formatPhoneNumber = (value: string) => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    
-    // Limit to 10 digits (for format 07XXXXXXXX)
-    return digits.slice(0, 10);
-  };
 
   const onSubmit = async (data: SignupFormData) => {
     setLoading(true);
@@ -46,10 +35,6 @@ export default function Signup() {
       email: data.email,
       password: data.password,
       options: {
-        data: { 
-          name: data.name, 
-          phone: data.phone 
-        },
         emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
@@ -96,24 +81,6 @@ export default function Signup() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="John Doe"
-                        autoComplete="name"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -124,29 +91,6 @@ export default function Signup() {
                         placeholder="you@example.com"
                         autoComplete="email"
                         {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="tel"
-                        placeholder="0712345678"
-                        autoComplete="tel"
-                        {...field}
-                        onChange={(e) => {
-                          const formatted = formatPhoneNumber(e.target.value);
-                          field.onChange(formatted);
-                        }}
                       />
                     </FormControl>
                     <FormMessage />
