@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileCompletionModal } from '@/components/profile/ProfileCompletionModal';
@@ -12,7 +11,6 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, requireTreasurer = false }: ProtectedRouteProps) {
   const { user, profile, loading, isOnboardingComplete, refreshProfile } = useAuth();
   const location = useLocation();
-  const [showProfileModal, setShowProfileModal] = useState(true);
 
   const isEmailVerified = !!(user?.email_confirmed_at || user?.confirmed_at);
 
@@ -38,17 +36,14 @@ export function ProtectedRoute({ children, requireTreasurer = false }: Protected
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Show profile completion modal only if onboarding not yet completed
-  if (profile && !isOnboardingComplete && showProfileModal) {
+  // Show profile completion modal only for first-time users (onboarding not completed)
+  if (profile && !isOnboardingComplete) {
     return (
       <>
         {children}
         <ProfileCompletionModal 
           open={true} 
-          onComplete={() => {
-            setShowProfileModal(false);
-            refreshProfile();
-          }} 
+          onComplete={() => refreshProfile()} 
         />
       </>
     );
