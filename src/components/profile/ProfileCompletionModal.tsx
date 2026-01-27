@@ -95,6 +95,7 @@ export function ProfileCompletionModal({ open, onComplete }: ProfileCompletionMo
         .update({
           username: data.username.toLowerCase(),
           phone: data.phone,
+          onboarding_completed: true,
         })
         .eq('user_id', user.id);
 

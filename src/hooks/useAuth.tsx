@@ -10,6 +10,7 @@ interface Profile {
   phone?: string | null;
   username?: string | null;
   is_treasurer: boolean;
+  onboarding_completed: boolean;
 }
 
 interface AuthContextType {
@@ -23,6 +24,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   isProfileComplete: boolean;
+  isOnboardingComplete: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -117,9 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isProfileComplete = !!(profile?.phone && profile?.username);
+  const isOnboardingComplete = !!profile?.onboarding_completed;
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signIn, signUp, signInWithGoogle, signOut, refreshProfile, isProfileComplete }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, signIn, signUp, signInWithGoogle, signOut, refreshProfile, isProfileComplete, isOnboardingComplete }}>
       {children}
     </AuthContext.Provider>
   );
