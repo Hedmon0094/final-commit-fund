@@ -1,61 +1,14 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Terminal, Mail, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Terminal, Mail, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const email = searchParams.get('email') || '';
-  const [otp, setOtp] = useState('');
-  const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-  const navigate = useNavigate();
-
-  const handleVerify = async () => {
-    if (otp.length !== 6) {
-      toast.error('Please enter the complete 6-digit code');
-      return;
-    }
-
-    if (!email) {
-      toast.error('Email not found. Please sign up again.');
-      return;
-    }
-
-    setLoading(true);
-    
-    try {
-      // Use our custom verification endpoint
-      const { data, error } = await supabase.functions.invoke('verify-code', {
-        body: { email, code: otp },
-      });
-
-      if (error) {
-        toast.error(error.message || 'Verification failed');
-        setLoading(false);
-        return;
-      }
-
-      if (!data?.success) {
-        toast.error(data?.error || 'Invalid or expired verification code');
-        setLoading(false);
-        return;
-      }
-
-      toast.success('Email verified successfully!');
-      
-      // Sign in the user after verification
-      // They'll need to log in with their credentials
-      navigate('/login?verified=true');
-    } catch (err: any) {
-      console.error('Verification error:', err);
-      toast.error('Verification failed. Please try again.');
-      setLoading(false);
-    }
-  };
 
   const handleResend = async () => {
     if (!email) {
@@ -66,18 +19,22 @@ export default function VerifyEmail() {
     setResending(true);
     
     try {
-      const { error } = await supabase.functions.invoke('send-verification-code', {
-        body: { email },
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login?verified=true`,
+        },
       });
 
       if (error) {
-        toast.error(error.message || 'Failed to resend code');
+        toast.error(error.message || 'Failed to resend verification email');
       } else {
-        toast.success('Verification code sent! Check your email.');
+        toast.success('Verification email sent! Check your inbox.');
       }
     } catch (err: any) {
       console.error('Resend error:', err);
-      toast.error('Failed to resend code. Please try again.');
+      toast.error('Failed to resend email. Please try again.');
     }
     
     setResending(false);
@@ -103,11 +60,11 @@ export default function VerifyEmail() {
           </div>
           
           <h1 className="text-2xl font-bold text-foreground tracking-tight mb-3">
-            Verify your email
+            Check your email
           </h1>
           
           <p className="text-muted-foreground mb-2">
-            We've sent a 6-digit verification code to
+            We've sent a verification link to
           </p>
           {email && (
             <p className="font-medium text-foreground mb-6">
@@ -115,43 +72,12 @@ export default function VerifyEmail() {
             </p>
           )}
 
-          <div className="flex justify-center mb-6">
-            <InputOTP
-              maxLength={6}
-              value={otp}
-              onChange={setOtp}
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-
-          <Button 
-            onClick={handleVerify} 
-            className="w-full h-11 mb-4" 
-            disabled={loading || otp.length !== 6}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              <>
-                Verify Email
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </>
-            )}
-          </Button>
+          <p className="text-muted-foreground mb-6">
+            Click the link in your email to verify your account and start contributing.
+          </p>
 
           <div className="bg-muted/50 rounded-lg p-4 mb-6">
-            <h3 className="font-medium text-foreground mb-2">Didn't receive the code?</h3>
+            <h3 className="font-medium text-foreground mb-2">Didn't receive the email?</h3>
             <ul className="text-sm text-muted-foreground space-y-1 text-left mb-3">
               <li>• Check your spam or junk folder</li>
               <li>• Make sure you entered the correct email</li>
@@ -170,7 +96,7 @@ export default function VerifyEmail() {
               ) : (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Resend code
+                  Resend verification email
                 </>
               )}
             </Button>
@@ -180,6 +106,13 @@ export default function VerifyEmail() {
             Wrong email?{' '}
             <Link to="/signup" className="text-primary font-medium hover:underline">
               Sign up again
+            </Link>
+          </p>
+
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            Already verified?{' '}
+            <Link to="/login" className="text-primary font-medium hover:underline">
+              Sign in
             </Link>
           </p>
         </div>
