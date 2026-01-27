@@ -1,8 +1,70 @@
-import { Link } from 'react-router-dom';
-import { Terminal, Mail, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Terminal, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function VerifyEmail() {
+  const [searchParams] = useSearchParams();
+  const email = searchParams.get('email') || '';
+  const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const navigate = useNavigate();
+
+  const handleVerify = async () => {
+    if (otp.length !== 6) {
+      toast.error('Please enter the complete 6-digit code');
+      return;
+    }
+
+    if (!email) {
+      toast.error('Email not found. Please sign up again.');
+      return;
+    }
+
+    setLoading(true);
+    
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: 'signup',
+    });
+
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+
+    toast.success('Email verified successfully!');
+    navigate('/dashboard');
+  };
+
+  const handleResend = async () => {
+    if (!email) {
+      toast.error('Email not found. Please sign up again.');
+      return;
+    }
+
+    setResending(true);
+    
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+    });
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Verification code sent! Check your email.');
+    }
+    
+    setResending(false);
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -23,34 +85,80 @@ export default function VerifyEmail() {
           </div>
           
           <h1 className="text-2xl font-bold text-foreground tracking-tight mb-3">
-            Check your email
+            Verify your email
           </h1>
           
-          <p className="text-muted-foreground mb-6">
-            We've sent a verification link to your email address. 
-            Please click the link to verify your account and complete your registration.
+          <p className="text-muted-foreground mb-2">
+            We've sent a 6-digit verification code to
           </p>
+          {email && (
+            <p className="font-medium text-foreground mb-6">
+              {email}
+            </p>
+          )}
 
-          <div className="bg-muted/50 rounded-lg p-4 mb-6">
-            <h3 className="font-medium text-foreground mb-2">Didn't receive the email?</h3>
-            <ul className="text-sm text-muted-foreground space-y-1 text-left">
-              <li>• Check your spam or junk folder</li>
-              <li>• Make sure you entered the correct email</li>
-              <li>• Wait a few minutes and try again</li>
-            </ul>
+          <div className="flex justify-center mb-6">
+            <InputOTP
+              maxLength={6}
+              value={otp}
+              onChange={setOtp}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
           </div>
 
-          <Button asChild className="w-full h-11">
-            <Link to="/login">
-              Continue to Login
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
+          <Button 
+            onClick={handleVerify} 
+            className="w-full h-11 mb-4" 
+            disabled={loading || otp.length !== 6}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Verifying...
+              </>
+            ) : (
+              <>
+                Verify Email
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </>
+            )}
           </Button>
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            Need help?{' '}
-            <Link to="/" className="text-primary font-medium hover:underline">
-              Contact support
+          <div className="bg-muted/50 rounded-lg p-4 mb-6">
+            <h3 className="font-medium text-foreground mb-2">Didn't receive the code?</h3>
+            <ul className="text-sm text-muted-foreground space-y-1 text-left mb-3">
+              <li>• Check your spam or junk folder</li>
+              <li>• Make sure you entered the correct email</li>
+            </ul>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleResend}
+              disabled={resending}
+            >
+              {resending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Resend code'
+              )}
+            </Button>
+          </div>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Wrong email?{' '}
+            <Link to="/signup" className="text-primary font-medium hover:underline">
+              Sign up again
             </Link>
           </p>
         </div>
