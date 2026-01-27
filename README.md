@@ -311,6 +311,118 @@ Members are categorized by contribution progress:
 
 ---
 
+## 🤝 Contributing
+
+### Getting Started as a New Developer
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd finalcommit-fund
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Run tests**
+   ```bash
+   npm run test
+   ```
+
+### Development Workflow
+
+1. Create a feature branch from `main`
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. Make your changes following the coding standards below
+
+3. Write/update tests for your changes
+
+4. Commit with descriptive messages
+   ```bash
+   git commit -m "feat: add new contribution reminder feature"
+   ```
+
+5. Push and create a Pull Request
+
+### Coding Standards
+
+#### TypeScript
+- Use strict typing; avoid `any`
+- Define interfaces for all data structures
+- Use meaningful variable/function names
+
+#### React Components
+- Use functional components with hooks
+- Keep components small and focused
+- Extract reusable logic into custom hooks
+
+#### Styling
+- Use Tailwind CSS utility classes
+- Use semantic tokens from the design system (never hardcode colors)
+- Follow mobile-first responsive design
+
+#### File Organization
+```
+src/components/feature/
+├── FeatureName.tsx       # Main component
+├── FeatureName.test.tsx  # Tests
+├── useFeatureName.ts     # Custom hook (if needed)
+└── index.ts              # Barrel export
+```
+
+### Commit Message Convention
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+| Type | Description |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation changes |
+| `style` | Formatting (no code change) |
+| `refactor` | Code restructuring |
+| `test` | Adding/updating tests |
+| `chore` | Maintenance tasks |
+
+### Testing Guidelines
+
+- Write tests for all new features
+- Maintain >80% coverage for critical paths
+- Test file naming: `ComponentName.test.tsx`
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+
+describe("ComponentName", () => {
+  it("renders correctly", () => {
+    render(<ComponentName />);
+    expect(screen.getByText("Expected")).toBeInTheDocument();
+  });
+});
+```
+
+### Pull Request Checklist
+
+- [ ] Code follows project style guidelines
+- [ ] Tests pass locally
+- [ ] New features have tests
+- [ ] Documentation updated if needed
+- [ ] No console errors or warnings
+- [ ] Responsive design verified
+
+---
+
 ## 📞 Support
 
 For issues or questions, contact the Treasurer or create an issue in this repository.
