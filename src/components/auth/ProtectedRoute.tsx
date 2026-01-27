@@ -14,6 +14,8 @@ export function ProtectedRoute({ children, requireTreasurer = false }: Protected
   const location = useLocation();
   const [showProfileModal, setShowProfileModal] = useState(true);
 
+  const isEmailVerified = !!(user?.email_confirmed_at || user?.confirmed_at);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -24,6 +26,12 @@ export function ProtectedRoute({ children, requireTreasurer = false }: Protected
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Block access to protected pages until email is verified
+  if (!isEmailVerified) {
+    const emailParam = user.email ? `?email=${encodeURIComponent(user.email)}` : '';
+    return <Navigate to={`/verify-email${emailParam}`} replace />;
   }
 
   if (requireTreasurer && !profile?.is_treasurer) {

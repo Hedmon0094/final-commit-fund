@@ -11,6 +11,17 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Phone, User, Mail, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Form,
   FormControl,
   FormField,
@@ -40,6 +51,7 @@ export default function ProfileSettings() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -100,6 +112,27 @@ export default function ProfileSettings() {
       setError(err.message || 'Failed to update profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('delete-account');
+      if (fnError) throw fnError;
+      if (data && typeof data === 'object' && 'success' in data && (data as any).success !== true) {
+        throw new Error((data as any).error || 'Failed to delete account');
+      }
+
+      // Local sign-out to clear UI state
+      await supabase.auth.signOut();
+      toast.success('Your account has been deleted.');
+      navigate('/', { replace: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to delete account';
+      toast.error(message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -236,6 +269,44 @@ export default function ProfileSettings() {
                     </>
                   )}
                 </Button>
+
+                <div className="pt-2">
+                  <div className="rounded-lg border border-border p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Delete account</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Permanently remove your account and contributions. This cannot be undone.
+                        </p>
+                      </div>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" disabled={deleting}>
+                            {deleting ? 'Deleting…' : 'Delete'}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete your account data. If you proceed, you will be signed out.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleDeleteAccount}
+                              disabled={deleting}
+                            >
+                              Delete permanently
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                </div>
               </form>
             </Form>
           </CardContent>

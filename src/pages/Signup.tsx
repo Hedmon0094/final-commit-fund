@@ -31,11 +31,12 @@ export default function Signup() {
   const onSubmit = async (data: SignupFormData) => {
     setLoading(true);
     
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        // If the user clicks an email link, keep them on the OTP screen (not the dashboard)
+        emailRedirectTo: `${window.location.origin}/verify-email?email=${encodeURIComponent(data.email)}`,
       },
     });
 
@@ -47,6 +48,11 @@ export default function Signup() {
       }
       setLoading(false);
       return;
+    }
+
+    // If the backend is configured to auto-login on signup, sign out to avoid dashboard access pre-verification.
+    if (signUpData?.session) {
+      await supabase.auth.signOut();
     }
 
     toast.success('Account created! Please check your email for the verification code.');
