@@ -35,7 +35,6 @@ export default function Signup() {
       email: data.email,
       password: data.password,
       options: {
-        // If the user clicks an email link, keep them on the OTP screen (not the dashboard)
         emailRedirectTo: `${window.location.origin}/verify-email?email=${encodeURIComponent(data.email)}`,
       },
     });
@@ -53,6 +52,20 @@ export default function Signup() {
     // If the backend is configured to auto-login on signup, sign out to avoid dashboard access pre-verification.
     if (signUpData?.session) {
       await supabase.auth.signOut();
+    }
+
+    // Send custom verification code email
+    try {
+      const { error: codeError } = await supabase.functions.invoke('send-verification-code', {
+        body: { email: data.email },
+      });
+
+      if (codeError) {
+        console.error('Failed to send verification code:', codeError);
+        // Continue anyway - user can still use resend on the verify page
+      }
+    } catch (err) {
+      console.error('Failed to send verification code:', err);
     }
 
     toast.success('Account created! Please check your email for the verification code.');
