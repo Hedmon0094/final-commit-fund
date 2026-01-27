@@ -39,11 +39,9 @@ export const phoneSchema = z
 // Optional phone for forms where it's not required
 export const optionalPhoneSchema = phoneSchema.optional().or(z.literal(''));
 
-// Signup form schema
+// Signup form schema (simplified - profile completion handles name/phone)
 export const signupSchema = z.object({
-  name: nameSchema,
   email: emailSchema,
-  phone: phoneSchema,
   password: passwordSchema,
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
