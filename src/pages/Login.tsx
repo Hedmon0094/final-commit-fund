@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Terminal, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { loginSchema, LoginFormData } from '@/lib/validations';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,11 +21,19 @@ export default function Login() {
     defaultValues: {
       email: '',
       password: '',
+      rememberMe: false,
     },
   });
 
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
+    
+    // Set session persistence based on remember me
+    if (data.rememberMe) {
+      localStorage.setItem('rememberMe', 'true');
+    } else {
+      localStorage.removeItem('rememberMe');
+    }
     
     const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
@@ -114,7 +123,24 @@ export default function Login() {
                 )}
               />
 
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between">
+                <FormField
+                  control={form.control}
+                  name="rememberMe"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="text-sm font-normal cursor-pointer">
+                        Remember me
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
                 <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                   Forgot password?
                 </Link>
