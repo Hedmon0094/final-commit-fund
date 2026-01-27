@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Terminal, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Terminal, Loader2, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,7 +14,16 @@ import { toast } from 'sonner';
 export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const isVerified = searchParams.get('verified') === 'true';
+
+  useEffect(() => {
+    if (isVerified) {
+      toast.success('Email verified! You can now sign in.');
+    }
+  }, [isVerified]);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -73,6 +82,13 @@ export default function Login() {
               Sign in to view your contributions
             </p>
           </div>
+
+          {isVerified && (
+            <div className="flex items-center justify-center gap-2 p-3 mb-6 rounded-lg bg-success/10 text-success">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="text-sm font-medium">Email verified successfully!</span>
+            </div>
+          )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

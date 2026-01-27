@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Terminal, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { Terminal, Mail, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,20 +27,34 @@ export default function VerifyEmail() {
 
     setLoading(true);
     
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
-      type: 'signup',
-    });
+    try {
+      // Use our custom verification endpoint
+      const { data, error } = await supabase.functions.invoke('verify-code', {
+        body: { email, code: otp },
+      });
 
-    if (error) {
-      toast.error(error.message);
+      if (error) {
+        toast.error(error.message || 'Verification failed');
+        setLoading(false);
+        return;
+      }
+
+      if (!data?.success) {
+        toast.error(data?.error || 'Invalid or expired verification code');
+        setLoading(false);
+        return;
+      }
+
+      toast.success('Email verified successfully!');
+      
+      // Sign in the user after verification
+      // They'll need to log in with their credentials
+      navigate('/login?verified=true');
+    } catch (err: any) {
+      console.error('Verification error:', err);
+      toast.error('Verification failed. Please try again.');
       setLoading(false);
-      return;
     }
-
-    toast.success('Email verified successfully!');
-    navigate('/dashboard');
   };
 
   const handleResend = async () => {
@@ -51,15 +65,19 @@ export default function VerifyEmail() {
 
     setResending(true);
     
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email,
-    });
+    try {
+      const { error } = await supabase.functions.invoke('send-verification-code', {
+        body: { email },
+      });
 
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success('Verification code sent! Check your email.');
+      if (error) {
+        toast.error(error.message || 'Failed to resend code');
+      } else {
+        toast.success('Verification code sent! Check your email.');
+      }
+    } catch (err: any) {
+      console.error('Resend error:', err);
+      toast.error('Failed to resend code. Please try again.');
     }
     
     setResending(false);
@@ -150,7 +168,10 @@ export default function VerifyEmail() {
                   Sending...
                 </>
               ) : (
-                'Resend code'
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Resend code
+                </>
               )}
             </Button>
           </div>
