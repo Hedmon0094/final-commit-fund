@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireTreasurer = false }: ProtectedRouteProps) {
-  const { user, profile, loading, isProfileComplete, refreshProfile } = useAuth();
+  const { user, profile, loading, isOnboardingComplete, refreshProfile } = useAuth();
   const location = useLocation();
   const [showProfileModal, setShowProfileModal] = useState(true);
 
@@ -38,8 +38,8 @@ export function ProtectedRoute({ children, requireTreasurer = false }: Protected
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Show profile completion modal if phone or username is missing
-  if (profile && !isProfileComplete && showProfileModal) {
+  // Show profile completion modal only if onboarding not yet completed
+  if (profile && !isOnboardingComplete && showProfileModal) {
     return (
       <>
         {children}

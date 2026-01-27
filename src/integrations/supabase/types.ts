@@ -48,6 +48,7 @@ export type Database = {
           id: string
           is_treasurer: boolean
           name: string
+          onboarding_completed: boolean
           phone: string | null
           updated_at: string
           user_id: string
@@ -59,6 +60,7 @@ export type Database = {
           id?: string
           is_treasurer?: boolean
           name: string
+          onboarding_completed?: boolean
           phone?: string | null
           updated_at?: string
           user_id: string
@@ -70,6 +72,7 @@ export type Database = {
           id?: string
           is_treasurer?: boolean
           name?: string
+          onboarding_completed?: boolean
           phone?: string | null
           updated_at?: string
           user_id?: string
