@@ -35,7 +35,7 @@ export default function Signup() {
       email: data.email,
       password: data.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/verify-email?email=${encodeURIComponent(data.email)}`,
+        emailRedirectTo: `${window.location.origin}/login?verified=true`,
       },
     });
 
@@ -54,21 +54,7 @@ export default function Signup() {
       await supabase.auth.signOut();
     }
 
-    // Send custom verification code email
-    try {
-      const { error: codeError } = await supabase.functions.invoke('send-verification-code', {
-        body: { email: data.email },
-      });
-
-      if (codeError) {
-        console.error('Failed to send verification code:', codeError);
-        // Continue anyway - user can still use resend on the verify page
-      }
-    } catch (err) {
-      console.error('Failed to send verification code:', err);
-    }
-
-    toast.success('Account created! Please check your email for the verification code.');
+    toast.success('Account created! Please check your email for the verification link.');
     navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
   };
 
