@@ -33,7 +33,7 @@ const profileSchema = z.object({
     .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
   phone: z
     .string()
-    .regex(/^(\+254|254|0)?[17]\d{8}$/, 'Please enter a valid Kenyan phone number (e.g., 0712345678)')
+    .regex(/^0[17]\d{8}$/, 'Phone number must be 10 digits starting with 07 or 01 (e.g., 0712345678)')
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -187,6 +187,10 @@ export function ProfileCompletionModal({ open, onComplete }: ProfileCompletionMo
                       placeholder="0712345678"
                       className="h-11"
                       {...field}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        field.onChange(digits);
+                      }}
                     />
                   </FormControl>
                   <FormDescription className="text-xs">

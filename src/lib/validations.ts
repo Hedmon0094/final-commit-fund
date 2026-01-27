@@ -30,13 +30,14 @@ export const nameSchema = z
   .max(100, 'Name must be less than 100 characters')
   .regex(/^[a-zA-Z\s'-]+$/, 'Name can only contain letters, spaces, hyphens, and apostrophes');
 
-// Phone validation (Kenyan format)
+// Phone validation (Kenyan format - must start with 07 or 01)
 export const phoneSchema = z
   .string()
   .trim()
-  .regex(/^(?:\+254|0)?[17]\d{8}$/, 'Please enter a valid Kenyan phone number (e.g., 0712345678)')
-  .optional()
-  .or(z.literal(''));
+  .regex(/^0[17]\d{8}$/, 'Phone number must be 10 digits starting with 07 or 01 (e.g., 0712345678)');
+
+// Optional phone for forms where it's not required
+export const optionalPhoneSchema = phoneSchema.optional().or(z.literal(''));
 
 // Signup form schema
 export const signupSchema = z.object({
