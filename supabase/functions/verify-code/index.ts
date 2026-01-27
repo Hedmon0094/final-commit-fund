@@ -15,36 +15,36 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, code } = await req.json();
+    const { email, token } = await req.json();
 
-    if (!email || !code) {
-      throw new Error("Email and code are required");
+    if (!email || !token) {
+      throw new Error("Email and token are required");
     }
 
-    console.log("Verifying code for:", email);
+    console.log("Verifying token for:", email);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Look up the verification code
+    // Look up the verification token
     const { data: verificationRecord, error: lookupError } = await supabase
       .from("verification_codes")
       .select("*")
       .eq("email", email.toLowerCase())
-      .eq("code", code)
+      .eq("code", token)
       .eq("verified", false)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle();
 
     if (lookupError) {
       console.error("Lookup error:", lookupError);
-      throw new Error("Failed to verify code");
+      throw new Error("Failed to verify token");
     }
 
     if (!verificationRecord) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Invalid or expired verification code" 
+          error: "Invalid or expired verification link" 
         }),
         {
           status: 400,
@@ -53,7 +53,7 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Mark code as verified
+    // Mark token as verified
     await supabase
       .from("verification_codes")
       .update({ verified: true })
@@ -93,7 +93,7 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error("Failed to confirm email");
     }
 
-    // Clean up used verification code
+    // Clean up used verification tokens
     await supabase
       .from("verification_codes")
       .delete()
@@ -110,9 +110,9 @@ serve(async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error("Verify code error:", error);
+    console.error("Verify error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to verify code" }),
+      JSON.stringify({ error: error.message || "Failed to verify email" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

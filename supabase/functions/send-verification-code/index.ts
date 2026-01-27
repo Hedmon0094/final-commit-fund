@@ -10,8 +10,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function generateCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+function generateToken(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -20,18 +22,18 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, name } = await req.json();
+    const { email, redirectUrl } = await req.json();
 
     if (!email) {
       throw new Error("Email is required");
     }
 
-    console.log("Generating verification code for:", email);
+    console.log("Generating verification token for:", email);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Generate 6-digit code
-    const code = generateCode();
+    // Generate secure token
+    const token = generateToken();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
 
     // Delete any existing codes for this email
@@ -40,23 +42,25 @@ serve(async (req: Request): Promise<Response> => {
       .delete()
       .eq("email", email.toLowerCase());
 
-    // Insert new code
+    // Insert new token (using 'code' column for the token)
     const { error: insertError } = await supabase
       .from("verification_codes")
       .insert({
         email: email.toLowerCase(),
-        code,
+        code: token,
         expires_at: expiresAt.toISOString(),
       });
 
     if (insertError) {
-      console.error("Failed to store code:", insertError);
-      throw new Error("Failed to generate verification code");
+      console.error("Failed to store token:", insertError);
+      throw new Error("Failed to generate verification token");
     }
 
+    // Build verification link
+    const baseUrl = redirectUrl || "https://final-commit-fund.lovable.app";
+    const verifyUrl = `${baseUrl}/verify?token=${token}&email=${encodeURIComponent(email)}`;
+
     // Send email via Resend
-    const userName = name || "there";
-    
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -80,23 +84,27 @@ serve(async (req: Request): Promise<Response> => {
             Verify your email
           </h2>
           <p style="color: #71717a; font-size: 15px; text-align: center; margin: 0 0 32px 0;">
-            Hi ${userName}, enter this code to complete your registration
+            Click the button below to verify your email address and activate your account.
           </p>
           
-          <div style="background: #f4f4f5; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
-            <p style="color: #71717a; font-size: 13px; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">
-              Verification Code
-            </p>
-            <p style="font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 36px; font-weight: 700; color: #18181b; margin: 0; letter-spacing: 8px;">
-              ${code}
-            </p>
+          <div style="text-align: center; margin-bottom: 32px;">
+            <a href="${verifyUrl}" style="display: inline-block; background: #18181b; color: white; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+              Verify Email Address
+            </a>
           </div>
           
+          <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0 0 16px 0;">
+            Or copy and paste this link into your browser:
+          </p>
+          <p style="color: #3b82f6; font-size: 12px; text-align: center; word-break: break-all; margin: 0 0 24px 0;">
+            ${verifyUrl}
+          </p>
+          
           <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0 0 8px 0;">
-            This code expires in 1 hour
+            This link expires in 1 hour
           </p>
           <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0;">
-            If you didn't request this, you can safely ignore this email.
+            If you didn't create an account, you can safely ignore this email.
           </p>
         </div>
         
@@ -131,7 +139,7 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Verification email sent successfully:", emailData);
 
     return new Response(
-      JSON.stringify({ success: true, message: "Verification code sent" }),
+      JSON.stringify({ success: true, message: "Verification email sent" }),
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -139,9 +147,9 @@ serve(async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error("Send verification code error:", error);
+    console.error("Send verification error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to send verification code" }),
+      JSON.stringify({ error: error.message || "Failed to send verification email" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
