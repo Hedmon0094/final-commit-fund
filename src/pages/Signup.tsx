@@ -16,6 +16,8 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -23,6 +25,7 @@ export default function Signup() {
       email: '',
       phone: '',
       password: '',
+      confirmPassword: '',
     },
   });
 
@@ -62,7 +65,7 @@ export default function Signup() {
     }
 
     toast.success('Account created! Please check your email to verify.');
-    navigate('/login');
+    navigate('/verify-email');
   };
 
   return (
@@ -175,6 +178,34 @@ export default function Signup() {
                       </div>
                     </FormControl>
                     <PasswordStrengthIndicator password={password} />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          autoComplete="new-password"
+                          {...field}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

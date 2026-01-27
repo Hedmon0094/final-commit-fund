@@ -45,12 +45,17 @@ export const signupSchema = z.object({
   email: emailSchema,
   phone: phoneSchema,
   password: passwordSchema,
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 // Login form schema
 export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean().optional(),
 });
 
 // Reset password schema
