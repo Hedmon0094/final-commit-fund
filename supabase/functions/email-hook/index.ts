@@ -229,7 +229,7 @@ serve(async (req: Request): Promise<Response> => {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "FinalCommit <onboarding@resend.dev>",
+        from: "FinalCommit <noreply@final-commit-fund.lovable.app>",
         to: [userEmail],
         subject,
         html: htmlContent,
