@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { 
@@ -11,7 +12,6 @@ import {
   AlertCircle, 
   CheckCircle2,
   Loader2,
-  ExternalLink,
   Phone,
   Mail,
   Copy,
@@ -50,11 +50,30 @@ interface ReminderResponse {
 
 type TargetGroup = 'all' | 'incomplete' | 'not_started' | 'in_progress';
 
+// Format phone for WhatsApp (Kenyan format)
+function formatPhoneForWhatsApp(phone: string): string {
+  let cleaned = phone.replace(/\D/g, '');
+
+  if (cleaned.startsWith('0')) {
+    cleaned = '254' + cleaned.slice(1);
+  } else if (!cleaned.startsWith('254')) {
+    cleaned = '254' + cleaned;
+  }
+
+  return cleaned;
+}
+
+function buildWhatsAppLink(phone: string, message: string): string {
+  const formattedPhone = formatPhoneForWhatsApp(phone);
+  return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+}
+
 export function ReminderManager() {
   const [isLoading, setIsLoading] = useState(false);
   const [reminderData, setReminderData] = useState<ReminderResponse | null>(null);
   const [targetGroup, setTargetGroup] = useState<TargetGroup>('incomplete');
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
+  const [editedMessages, setEditedMessages] = useState<Record<string, string>>({});
 
   const fetchReminders = async () => {
     setIsLoading(true);
@@ -234,12 +253,32 @@ export function ReminderManager() {
                 {expandedMember === member.email && (
                   <div className="p-3 bg-muted/30 border-t space-y-3">
                     <div className="bg-background p-3 rounded text-xs font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
-                      {member.message}
+                      {editedMessages[member.email] ?? member.message}
                     </div>
+
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">Edit message (optional)</p>
+                      <Textarea
+                        value={editedMessages[member.email] ?? member.message}
+                        onChange={(e) =>
+                          setEditedMessages((prev) => ({
+                            ...prev,
+                            [member.email]: e.target.value,
+                          }))
+                        }
+                        className="min-h-[96px] text-sm"
+                      />
+                    </div>
+
                     <div className="flex gap-2">
                       {member.whatsappLink ? (
                         <a 
-                          href={member.whatsappLink}
+                          href={buildWhatsAppLink(
+                            member.phone!,
+                            editedMessages[member.email] ?? member.message
+                          )}
+                          target="_top"
+                          rel="noopener noreferrer"
                           className="inline-flex items-center justify-center gap-2 flex-1 h-8 px-3 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                         >
                           <MessageCircle className="w-4 h-4" />
@@ -255,7 +294,7 @@ export function ReminderManager() {
                         size="sm" 
                         variant="outline"
                         className="gap-2"
-                        onClick={() => copyMessage(member.message)}
+                        onClick={() => copyMessage(editedMessages[member.email] ?? member.message)}
                       >
                         <Copy className="w-4 h-4" />
                         Copy
