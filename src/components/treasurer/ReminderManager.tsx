@@ -270,7 +270,7 @@ export function ReminderManager() {
                       />
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       {member.whatsappLink ? (
                         <a 
                           href={buildWhatsAppLink(
@@ -279,13 +279,13 @@ export function ReminderManager() {
                           )}
                           target="_top"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-2 flex-1 h-8 px-3 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                          className="inline-flex items-center justify-center gap-2 flex-1 h-10 sm:h-8 px-4 sm:px-3 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all touch-manipulation"
                         >
                           <MessageCircle className="w-4 h-4" />
                           Open WhatsApp
                         </a>
                       ) : (
-                        <Button size="sm" variant="secondary" className="gap-2 flex-1" disabled>
+                        <Button size="sm" variant="secondary" className="gap-2 flex-1 h-10 sm:h-8" disabled>
                           <Phone className="w-4 h-4" />
                           No Phone Number
                         </Button>
@@ -293,7 +293,7 @@ export function ReminderManager() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        className="gap-2"
+                        className="gap-2 h-10 sm:h-8"
                         onClick={() => copyMessage(editedMessages[member.email] ?? member.message)}
                       >
                         <Copy className="w-4 h-4" />
