@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, userEmail?: string) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -44,6 +44,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (!error && data) {
       setProfile(data);
+    } else if (error?.code === 'PGRST116' && userEmail) {
+      // Profile doesn't exist - create one (handles edge case for users created before trigger)
+      const defaultName = userEmail.split('@')[0];
+      const { data: newProfile, error: insertError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: userId,
+          email: userEmail,
+          name: defaultName,
+        })
+        .select()
+        .single();
+      
+      if (!insertError && newProfile) {
+        setProfile(newProfile);
+      }
     }
   };
 
@@ -53,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user.email);
       }
       setLoading(false);
     });
@@ -66,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (session?.user) {
           // Small delay to allow trigger to create profile
-          setTimeout(() => fetchProfile(session.user.id), 100);
+          setTimeout(() => fetchProfile(session.user.id, session.user.email), 100);
         } else {
           setProfile(null);
         }
@@ -114,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = async () => {
     if (user) {
-      await fetchProfile(user.id);
+      await fetchProfile(user.id, user.email ?? undefined);
     }
   };
 
