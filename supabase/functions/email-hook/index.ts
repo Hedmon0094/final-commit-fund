@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +25,6 @@ interface EmailPayload {
 }
 
 serve(async (req: Request): Promise<Response> => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -35,19 +35,23 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Email hook received:", JSON.stringify({
       email: payload.user?.email,
       action_type: payload.email_data?.email_action_type,
-      has_token: !!payload.email_data?.token,
+      has_token: !!payload.email_data?.token_hash,
     }));
 
     const { user, email_data } = payload;
-    const { token, email_action_type } = email_data;
+    const { token_hash, email_action_type, redirect_to, site_url } = email_data;
     const userEmail = user.email;
     const userName = user.user_metadata?.name || "there";
 
+    // Build verification link using Supabase's auth endpoint
+    const verifyType = email_action_type === "recovery" ? "recovery" : 
+                       email_action_type === "signup" ? "signup" :
+                       email_action_type === "email_change" ? "email_change" : "signup";
+    
+    const verificationLink = `${SUPABASE_URL}/auth/v1/verify?token=${token_hash}&type=${verifyType}&redirect_to=${encodeURIComponent(redirect_to)}`;
+
     let subject: string;
     let htmlContent: string;
-
-    // Format the 6-digit code with spacing for readability
-    const formattedToken = token ? token.split('').join(' ') : '';
 
     switch (email_action_type) {
       case "signup":
@@ -77,20 +81,24 @@ serve(async (req: Request): Promise<Response> => {
                 Verify your email
               </h2>
               <p style="color: #71717a; font-size: 15px; text-align: center; margin: 0 0 32px 0;">
-                Hi ${userName}, enter this code to complete your registration
+                Hi ${userName}, click the button below to verify your email address and activate your account.
               </p>
               
-              <div style="background: #f4f4f5; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
-                <p style="color: #71717a; font-size: 13px; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">
-                  Verification Code
-                </p>
-                <p style="font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 36px; font-weight: 700; color: #18181b; margin: 0; letter-spacing: 8px;">
-                  ${token}
-                </p>
+              <div style="text-align: center; margin-bottom: 32px;">
+                <a href="${verificationLink}" style="display: inline-block; background: #18181b; color: white; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                  Verify Email Address
+                </a>
               </div>
               
+              <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0 0 16px 0;">
+                Or copy and paste this link into your browser:
+              </p>
+              <p style="color: #3b82f6; font-size: 12px; text-align: center; word-break: break-all; margin: 0 0 24px 0;">
+                ${verificationLink}
+              </p>
+              
               <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0 0 8px 0;">
-                This code expires in 1 hour
+                This link expires in 1 hour
               </p>
               <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0;">
                 If you didn't request this, you can safely ignore this email.
@@ -131,20 +139,24 @@ serve(async (req: Request): Promise<Response> => {
                 Reset your password
               </h2>
               <p style="color: #71717a; font-size: 15px; text-align: center; margin: 0 0 32px 0;">
-                Hi ${userName}, use this code to reset your password
+                Hi ${userName}, click the button below to reset your password.
               </p>
               
-              <div style="background: #f4f4f5; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
-                <p style="color: #71717a; font-size: 13px; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">
-                  Reset Code
-                </p>
-                <p style="font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 36px; font-weight: 700; color: #18181b; margin: 0; letter-spacing: 8px;">
-                  ${token}
-                </p>
+              <div style="text-align: center; margin-bottom: 32px;">
+                <a href="${verificationLink}" style="display: inline-block; background: #18181b; color: white; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                  Reset Password
+                </a>
               </div>
               
+              <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0 0 16px 0;">
+                Or copy and paste this link into your browser:
+              </p>
+              <p style="color: #3b82f6; font-size: 12px; text-align: center; word-break: break-all; margin: 0 0 24px 0;">
+                ${verificationLink}
+              </p>
+              
               <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0 0 8px 0;">
-                This code expires in 1 hour
+                This link expires in 1 hour
               </p>
               <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0;">
                 If you didn't request this, you can safely ignore this email.
@@ -160,7 +172,7 @@ serve(async (req: Request): Promise<Response> => {
         break;
 
       case "magic_link":
-        subject = "Your login code - FinalCommit";
+        subject = "Your login link - FinalCommit";
         htmlContent = `
           <!DOCTYPE html>
           <html>
@@ -181,23 +193,27 @@ serve(async (req: Request): Promise<Response> => {
               </div>
               
               <h2 style="color: #18181b; font-size: 20px; font-weight: 600; text-align: center; margin: 0 0 8px 0;">
-                Your login code
+                Sign in to FinalCommit
               </h2>
               <p style="color: #71717a; font-size: 15px; text-align: center; margin: 0 0 32px 0;">
-                Enter this code to sign in to your account
+                Click the button below to sign in to your account.
               </p>
               
-              <div style="background: #f4f4f5; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
-                <p style="color: #71717a; font-size: 13px; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">
-                  Login Code
-                </p>
-                <p style="font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 36px; font-weight: 700; color: #18181b; margin: 0; letter-spacing: 8px;">
-                  ${token}
-                </p>
+              <div style="text-align: center; margin-bottom: 32px;">
+                <a href="${verificationLink}" style="display: inline-block; background: #18181b; color: white; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                  Sign In
+                </a>
               </div>
               
+              <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0 0 16px 0;">
+                Or copy and paste this link into your browser:
+              </p>
+              <p style="color: #3b82f6; font-size: 12px; text-align: center; word-break: break-all; margin: 0 0 24px 0;">
+                ${verificationLink}
+              </p>
+              
               <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0 0 8px 0;">
-                This code expires in 1 hour
+                This link expires in 1 hour
               </p>
               <p style="color: #a1a1aa; font-size: 13px; text-align: center; margin: 0;">
                 If you didn't request this, you can safely ignore this email.
@@ -216,7 +232,7 @@ serve(async (req: Request): Promise<Response> => {
         console.log("Unknown email action type:", email_action_type);
         subject = "FinalCommit Notification";
         htmlContent = `
-          <p>Your verification code is: <strong>${token}</strong></p>
+          <p>Click here to continue: <a href="${verificationLink}">${verificationLink}</a></p>
         `;
     }
 
@@ -229,7 +245,7 @@ serve(async (req: Request): Promise<Response> => {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "FinalCommit <noreply@final-commit-fund.lovable.app>",
+        from: "FinalCommit <onboarding@resend.dev>",
         to: [userEmail],
         subject,
         html: htmlContent,
