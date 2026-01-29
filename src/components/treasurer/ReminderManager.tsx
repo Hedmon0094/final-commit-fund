@@ -65,7 +65,8 @@ function formatPhoneForWhatsApp(phone: string): string {
 
 function buildWhatsAppLink(phone: string, message: string): string {
   const formattedPhone = formatPhoneForWhatsApp(phone);
-  return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+  // Use api.whatsapp.com directly for broader compatibility (some environments block wa.me redirects)
+  return `https://api.whatsapp.com/send/?phone=${formattedPhone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
 }
 
 export function ReminderManager() {
@@ -107,10 +108,6 @@ export function ReminderManager() {
       title: "Copied!",
       description: "Message copied to clipboard",
     });
-  };
-
-  const openWhatsApp = (link: string) => {
-    window.open(link, '_blank');
   };
 
   const targetGroups: { value: TargetGroup; label: string; icon: React.ReactNode }[] = [
@@ -272,13 +269,26 @@ export function ReminderManager() {
 
                     <div className="flex flex-col sm:flex-row gap-2">
                       {member.whatsappLink ? (
-                        <a 
+                        <a
                           href={buildWhatsAppLink(
                             member.phone!,
                             editedMessages[member.email] ?? member.message
                           )}
                           target="_top"
                           rel="noopener noreferrer"
+                          onClick={(e) => {
+                            // Force same-tab navigation (some browsers/embeds may ignore target on anchors)
+                            e.preventDefault();
+                            const url = buildWhatsAppLink(
+                              member.phone!,
+                              editedMessages[member.email] ?? member.message
+                            );
+                            try {
+                              window.top?.location.assign(url);
+                            } catch {
+                              window.location.assign(url);
+                            }
+                          }}
                           className="inline-flex items-center justify-center gap-2 flex-1 h-10 sm:h-8 px-4 sm:px-3 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all touch-manipulation"
                         >
                           <MessageCircle className="w-4 h-4" />
