@@ -65,8 +65,19 @@ function formatPhoneForWhatsApp(phone: string): string {
 
 function buildWhatsAppLink(phone: string, message: string): string {
   const formattedPhone = formatPhoneForWhatsApp(phone);
-  // Use api.whatsapp.com directly for broader compatibility (some environments block wa.me redirects)
-  return `https://api.whatsapp.com/send/?phone=${formattedPhone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+  // Default to WhatsApp Web (more reliable on desktop browsers)
+  return `https://web.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+}
+
+function buildWhatsAppAppLink(phone: string, message: string): string {
+  const formattedPhone = formatPhoneForWhatsApp(phone);
+  // Mobile deep-link (works when WhatsApp is installed)
+  return `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+}
+
+function buildWhatsAppWebLink(phone: string, message: string): string {
+  const formattedPhone = formatPhoneForWhatsApp(phone);
+  return `https://web.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
 }
 
 export function ReminderManager() {
@@ -75,6 +86,9 @@ export function ReminderManager() {
   const [targetGroup, setTargetGroup] = useState<TargetGroup>('incomplete');
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const [editedMessages, setEditedMessages] = useState<Record<string, string>>({});
+
+  const isMobileDevice =
+    typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   const fetchReminders = async () => {
     setIsLoading(true);
@@ -269,31 +283,59 @@ export function ReminderManager() {
 
                     <div className="flex flex-col sm:flex-row gap-2">
                       {member.whatsappLink ? (
-                        <a
-                          href={buildWhatsAppLink(
-                            member.phone!,
-                            editedMessages[member.email] ?? member.message
-                          )}
-                          target="_top"
-                          rel="noopener noreferrer"
-                          onClick={(e) => {
-                            // Force same-tab navigation (some browsers/embeds may ignore target on anchors)
-                            e.preventDefault();
-                            const url = buildWhatsAppLink(
+                        <>
+                          <a
+                            href={(isMobileDevice ? buildWhatsAppAppLink : buildWhatsAppWebLink)(
                               member.phone!,
                               editedMessages[member.email] ?? member.message
-                            );
-                            try {
-                              window.top?.location.assign(url);
-                            } catch {
-                              window.location.assign(url);
-                            }
-                          }}
-                          className="inline-flex items-center justify-center gap-2 flex-1 h-10 sm:h-8 px-4 sm:px-3 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all touch-manipulation"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          Open WhatsApp
-                        </a>
+                            )}
+                            target="_top"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              // Force same-tab navigation (embeds may ignore target on anchors)
+                              e.preventDefault();
+                              const url = (isMobileDevice ? buildWhatsAppAppLink : buildWhatsAppWebLink)(
+                                member.phone!,
+                                editedMessages[member.email] ?? member.message
+                              );
+                              try {
+                                window.top?.location.assign(url);
+                              } catch {
+                                window.location.assign(url);
+                              }
+                            }}
+                            className="inline-flex items-center justify-center gap-2 flex-1 h-10 sm:h-8 px-4 sm:px-3 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all touch-manipulation"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            {isMobileDevice ? "Open WhatsApp App" : "Open WhatsApp Web"}
+                          </a>
+
+                          {/* Secondary option */}
+                          <a
+                            href={buildWhatsAppWebLink(
+                              member.phone!,
+                              editedMessages[member.email] ?? member.message
+                            )}
+                            target="_top"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const url = buildWhatsAppWebLink(
+                                member.phone!,
+                                editedMessages[member.email] ?? member.message
+                              );
+                              try {
+                                window.top?.location.assign(url);
+                              } catch {
+                                window.location.assign(url);
+                              }
+                            }}
+                            className="inline-flex items-center justify-center gap-2 flex-1 h-10 sm:h-8 px-4 sm:px-3 text-sm font-medium rounded-md border border-input bg-background hover:bg-muted/50 active:scale-[0.98] transition-all touch-manipulation"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            Open Web
+                          </a>
+                        </>
                       ) : (
                         <Button size="sm" variant="secondary" className="gap-2 flex-1 h-10 sm:h-8" disabled>
                           <Phone className="w-4 h-4" />
