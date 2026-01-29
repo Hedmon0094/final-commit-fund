@@ -180,12 +180,12 @@ export function ReminderManager() {
         )}
 
         {/* Member List with WhatsApp Links */}
-        {reminderData && reminderData.reminders.length > 0 && (
+        {reminderData && reminderData.reminders.filter(m => m.hasPhone).length > 0 && (
           <div className="space-y-2 pt-4 border-t max-h-96 overflow-y-auto">
             <p className="text-sm font-medium text-muted-foreground mb-3">
               Click to expand and send reminder:
             </p>
-            {reminderData.reminders.map((member) => (
+            {reminderData.reminders.filter(m => m.hasPhone).map((member) => (
               <div 
                 key={member.email}
                 className="border rounded-lg overflow-hidden"
@@ -240,13 +240,10 @@ export function ReminderManager() {
                       {member.whatsappLink ? (
                         <a 
                           href={member.whatsappLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
                           className="inline-flex items-center justify-center gap-2 flex-1 h-8 px-3 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                         >
                           <MessageCircle className="w-4 h-4" />
                           Open WhatsApp
-                          <ExternalLink className="w-3 h-3" />
                         </a>
                       ) : (
                         <Button size="sm" variant="secondary" className="gap-2 flex-1" disabled>
@@ -272,11 +269,11 @@ export function ReminderManager() {
         )}
 
         {/* Empty State */}
-        {reminderData && reminderData.reminders.length === 0 && (
+        {reminderData && reminderData.reminders.filter(m => m.hasPhone).length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-success" />
             <p className="font-medium">All caught up!</p>
-            <p className="text-sm">No members match the selected criteria.</p>
+            <p className="text-sm">No members with phone numbers match the selected criteria.</p>
           </div>
         )}
       </CardContent>
