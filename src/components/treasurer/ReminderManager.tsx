@@ -238,15 +238,16 @@ export function ReminderManager() {
                     </div>
                     <div className="flex gap-2">
                       {member.whatsappLink ? (
-                        <Button 
-                          size="sm" 
-                          className="gap-2 flex-1"
-                          onClick={() => openWhatsApp(member.whatsappLink!)}
+                        <a 
+                          href={member.whatsappLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center gap-2 flex-1 h-8 px-3 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                         >
                           <MessageCircle className="w-4 h-4" />
                           Open WhatsApp
                           <ExternalLink className="w-3 h-3" />
-                        </Button>
+                        </a>
                       ) : (
                         <Button size="sm" variant="secondary" className="gap-2 flex-1" disabled>
                           <Phone className="w-4 h-4" />
